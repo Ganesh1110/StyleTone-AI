@@ -35,12 +35,6 @@
   </a>
 </p>
 
-<p align="center">
-  <a href="https://apt.izzysoft.de/">
-    <img src="https://img.shields.io/badge/Get%20it%20on-IzzyOnDroid-blue?style=for-the-badge&logo=android&logoColor=white" alt="IzzyOnDroid">
-  </a>
-</p>
-
 ---
 
 ## 🌟 Key Features
@@ -52,20 +46,6 @@ StyleTone AI is a cross-platform mobile assistant that acts as a personal stylin
 *   🔄 **Local Storage & History Cache**: Save, browse, and delete your styling reports offline. Includes face thumbnail persistence in app document storage.
 *   📸 **AI Face & Quality Checker**: Real-time on-device facial feature validation (`google_ml_kit`) for gallery image picks to guarantee perfect lighting and alignment before color analysis.
 *   🛡️ **Viewfinder Mask Overlay**: Custom camera viewfinder oval mask to assist in taking perfectly aligned selfies.
-
----
-
-## 📸 Application Screenshots
-
-<p align="center">
-  <i>Save your emulator screenshots to <code>assets/screenshots/</code> directory to display them here.</i>
-</p>
-
-| 1. Onboarding (Face Scan) | 2. Onboarding (Palettes) | 3. Onboarding (TTS & Privacy) |
-| :---: | :---: | :---: |
-| <img src="assets/screenshots/onboarding1.png" width="220" alt="Onboarding 1"> | <img src="assets/screenshots/onboarding2.png" width="220" alt="Onboarding 2"> | <img src="assets/screenshots/onboarding3.png" width="220" alt="Onboarding 3"> |
-| **4. Main Dashboard** | **5. Quality Checker** | **6. Color Report** |
-| <img src="assets/screenshots/home.png" width="220" alt="Home Dashboard"> | <img src="assets/screenshots/preview.png" width="220" alt="Quality Check"> | <img src="assets/screenshots/result.png" width="220" alt="Style Report"> |
 
 ---
 
