@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# StyleTone AI - Automated Version Bumper
+# StyleTone AI - Automated Frontend Version Bumper
 import os
 import re
 
@@ -28,7 +28,7 @@ def bump_version():
         return
 
     print("==============================================")
-    print("🎯 StyleTone AI - Version Bumper")
+    print("🎯 StyleTone AI - Version Bumper (Frontend)")
     print(f"Current version: {version_name}+{version_code}")
     print("==============================================")
     print("Select upgrade type:")
