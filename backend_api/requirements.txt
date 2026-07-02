@@ -7,4 +7,3 @@ python-multipart
 pillow
 requests
 beautifulsoup4
-asgiref

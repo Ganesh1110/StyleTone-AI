@@ -10,7 +10,6 @@ from image_processor import process_selfie
 from bs4 import BeautifulSoup
 import requests
 import re
-from asgiref.wsgi import AsgiToWsgi
 
 app = FastAPI(title="StyleAI Personal Server")
 
@@ -73,5 +72,4 @@ async def analyze_dress(request: DressUrlRequest):
 async def root():
     return {"message": "StyleAI API is running on Vercel!"}
 
-# --- VERCEL ENTRY POINT (WSGI adapter) ---
-application = AsgiToWsgi(app)
+# Vercel auto-detects `app` as the ASGI handler
