@@ -117,7 +117,7 @@ def _get_gendered_stylist_tip(detected_season: str, occasion: str, gender: str) 
         else:
             return f"☀️ {detected_season} Casual: Relaxed, natural shades curated for everyday comfort and clean color harmony."
 
-def process_selfie(base64_image: str, occasion: str, gender: str = "neutral"):
+def process_selfie(base64_image: str, gender: str = "neutral"):
     try:
         # --- 1. EXTRACT SKIN TONE ---
         if base64_image.startswith("data:image"):
@@ -285,42 +285,37 @@ def process_selfie(base64_image: str, occasion: str, gender: str = "neutral"):
         season_descr = palettes[detected_season]["season_descr"]
         explanation = f"We detected {undertone} undertones and a {lightness_descr} skin level. This places you in the {detected_season} seasonal color family. {season_descr}"
 
-        # Get occasion specific styling colors & message
-        selected_palette = palettes[detected_season][occasion]
-        primary_color = selected_palette[0]
-        secondary_color = selected_palette[1]
-        accent_color = selected_palette[2]
-
-        msg = _get_gendered_stylist_tip(detected_season, occasion, gender)
+        # Generate occasion specific palettes and messages
+        palettes_out = {}
+        for occ in ["office", "party", "casual"]:
+            selected_palette = palettes[detected_season][occ]
+            palettes_out[occ] = {
+                "primary_color": selected_palette[0],
+                "secondary_color": selected_palette[1],
+                "accent_color": selected_palette[2],
+                "message": _get_gendered_stylist_tip(detected_season, occ, gender)
+            }
 
         return {
             "detected_category": f"{detected_season} Season",
-            "primary_color": primary_color,
-            "secondary_color": secondary_color,
-            "accent_color": accent_color,
             "confidence": confidence,
             "explanation": explanation,
-            "message": msg
+            "palettes": palettes_out
         }
 
     except Exception as e:
         print(f"Critical Error: {e}")
+        default_palettes = {}
+        for occ in ["office", "party", "casual"]:
+            default_palettes[occ] = {
+                "primary_color": "#6C63FF",
+                "secondary_color": "#FF6584",
+                "accent_color": "#FFC857",
+                "message": f"Styling engine running in safe mode. Error: {e}"
+            }
         return {
             "detected_category": "Unknown Season",
-            "primary_color": "#6C63FF",
-            "secondary_color": "#FF6584",
-            "accent_color": "#FFC857",
             "confidence": 50,
             "explanation": f"Oops! We encountered an error during color analysis: {e}. Using a default balanced palette.",
-            "message": "Styling engine running in safe mode."
-        }
-
-    except Exception as e:
-        print(f"Critical Error: {e}")
-        return {
-            "detected_category": "Error",
-            "primary_color": "#6C63FF",
-            "secondary_color": "#FF6584",
-            "accent_color": "#FFC857",
-            "message": "Oops! Something went wrong. Using default safe colors."
+            "palettes": default_palettes
         }

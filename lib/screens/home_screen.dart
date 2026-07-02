@@ -17,7 +17,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _selectedOccasion = 'office';
+  final String _selectedOccasion = 'casual';
 
   Future<void> _pickFromGallery() async {
     final picker = ImagePicker();
@@ -92,25 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              // Occasion Selector
-              Text(
-                'Select Occasion',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildOccasionChip('Office', 'office'),
-                  const SizedBox(width: 8),
-                  _buildOccasionChip('Party', 'party'),
-                  const SizedBox(width: 8),
-                  _buildOccasionChip('Casual', 'casual'),
-                ],
-              ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 24),
               // Take Photo Card
               _OptionCard(
                 icon: Icons.camera_alt_rounded,
@@ -146,21 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildOccasionChip(String label, String value) {
-    final isSelected = _selectedOccasion == value;
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) {
-        setState(() {
-          _selectedOccasion = value;
-        });
-      },
-      backgroundColor: Colors.grey[200],
-      selectedColor: Theme.of(context).colorScheme.primaryContainer,
-      checkmarkColor: Theme.of(context).colorScheme.primary,
-    );
-  }
+
 }
 
 class _OptionCard extends StatelessWidget {

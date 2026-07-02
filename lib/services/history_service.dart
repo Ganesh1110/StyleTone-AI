@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/color_recommendation.dart';
 import '../models/history_item.dart';
+import 'database_helper.dart';
 
 class HistoryService {
   static const String _historyKey = 'style_tone_history';
@@ -17,8 +18,6 @@ class HistoryService {
     ColorRecommendation recommendation,
   ) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-
       // Get app doc directory to permanently save the image
       final docDir = await getApplicationDocumentsDirectory();
       final historyDir = Directory(p.join(docDir.path, 'history_images'));
@@ -47,19 +46,10 @@ class HistoryService {
         recommendation: recommendation,
       );
 
-      // Load existing history
-      final List<HistoryItem> currentHistory = await getHistory();
-
-      // Prepend the new item (newest first)
-      currentHistory.insert(0, newItem);
-
-      // Serialize and save
-      final List<String> serialized =
-          currentHistory.map((item) => json.encode(item.toJson())).toList();
-      await prefs.setStringList(_historyKey, serialized);
+      // Save to SQLite
+      await DatabaseHelper.instance.insertHistory(newItem);
       return itemId;
     } catch (e) {
-      // Log or handle error silently
       debugPrint('Error saving history item: $e');
       return null;
     }
@@ -68,36 +58,41 @@ class HistoryService {
   // Update the rating of an existing history item
   Future<void> updateRating(String id, int rating) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final List<HistoryItem> currentHistory = await getHistory();
-
-      final int index = currentHistory.indexWhere((item) => item.id == id);
-      if (index != -1) {
-        currentHistory[index] = currentHistory[index].copyWith(rating: rating);
-
-        final List<String> serialized =
-            currentHistory.map((item) => json.encode(item.toJson())).toList();
-        await prefs.setStringList(_historyKey, serialized);
-      }
+      await DatabaseHelper.instance.updateRating(id, rating);
     } catch (e) {
       debugPrint('Error updating history item rating: $e');
     }
   }
 
-  // Retrieve history list
+  // Retrieve history list (with automatic SharedPreferences-to-SQLite migration)
   Future<List<HistoryItem>> getHistory() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final List<String>? serialized = prefs.getStringList(_historyKey);
-      if (serialized == null) return [];
+      final dbHelper = DatabaseHelper.instance;
+      List<HistoryItem> sqliteHistory = await dbHelper.fetchAllHistory();
 
-      return serialized
-          .map(
-            (itemStr) => HistoryItem.fromJson(
-              json.decode(itemStr) as Map<String, dynamic>,
-            ),
-          )
-          .toList();
+      if (sqliteHistory.isEmpty) {
+        // Check if there is legacy SharedPreferences data to migrate
+        final prefs = await SharedPreferences.getInstance();
+        final List<String>? legacyData = prefs.getStringList(_historyKey);
+
+        if (legacyData != null && legacyData.isNotEmpty) {
+          debugPrint('Migrating ${legacyData.length} legacy items from SharedPreferences to SQLite...');
+          for (final itemStr in legacyData) {
+            try {
+              final item = HistoryItem.fromJson(json.decode(itemStr) as Map<String, dynamic>);
+              await dbHelper.insertHistory(item);
+            } catch (e) {
+              debugPrint('Failed to migrate item: $e');
+            }
+          }
+          // Reload from SQLite after migration
+          sqliteHistory = await dbHelper.fetchAllHistory();
+          // Clear legacy key to avoid future runs
+          await prefs.remove(_historyKey);
+        }
+      }
+
+      return sqliteHistory;
     } catch (e) {
       debugPrint('Error loading history: $e');
       return [];
@@ -107,7 +102,6 @@ class HistoryService {
   // Delete a specific history item
   Future<void> deleteItem(String id) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final List<HistoryItem> currentHistory = await getHistory();
 
       // Find item to delete
@@ -121,13 +115,8 @@ class HistoryService {
           await file.delete();
         }
 
-        // Remove from list
-        currentHistory.removeAt(index);
-
-        // Serialize and save
-        final List<String> serialized =
-            currentHistory.map((item) => json.encode(item.toJson())).toList();
-        await prefs.setStringList(_historyKey, serialized);
+        // Delete from SQLite
+        await DatabaseHelper.instance.deleteHistory(id);
       }
     } catch (e) {
       debugPrint('Error deleting history item: $e');
