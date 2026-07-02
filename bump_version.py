@@ -13,14 +13,15 @@ def bump_version():
     with open(pubspec_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # Search for line matching 'version: X.Y.Z+W'
-    match = re.search(r"^version:\s*([0-9\.]+)\+([0-9]+)", content, re.MULTILINE)
+    # Search for version: X.Y.Z or X.Y.Z+W
+    match = re.search(r"^version:\s*([0-9\.]+)(?:\+([0-9]+))?", content, re.MULTILINE)
     if not match:
-        print("Error: Could not find version line in pubspec.yaml (format: version: X.Y.Z+W)")
+        print("Error: Could not find version line in pubspec.yaml (format: version: X.Y.Z)")
         return
 
     version_name = match.group(1)
-    version_code = int(match.group(2))
+    version_code_str = match.group(2)
+    version_code = int(version_code_str) if version_code_str else 1
     
     parts = list(map(int, version_name.split('.')))
     if len(parts) != 3:
@@ -29,13 +30,13 @@ def bump_version():
 
     print("==============================================")
     print("🎯 StyleTone AI - Version Bumper (Frontend)")
-    print(f"Current version: {version_name}+{version_code}")
+    print(f"Current version: {version_name}{'+' + str(version_code) if version_code_str else ''}")
     print("==============================================")
     print("Select upgrade type:")
-    print("1) Build code only (e.g., 1.0.0+1 -> 1.0.0+2)")
-    print("2) Patch bump      (e.g., 1.0.0+1 -> 1.0.1+2)")
-    print("3) Minor bump      (e.g., 1.0.0+1 -> 1.1.0+2)")
-    print("4) Major bump      (e.g., 1.0.0+1 -> 2.0.0+2)")
+    print("1) Build code only (e.g., 0.1.0 -> 0.1.0+2)")
+    print("2) Patch bump      (e.g., 0.1.0 -> 0.1.1+2)")
+    print("3) Minor bump      (e.g., 0.1.0 -> 0.2.0+2)")
+    print("4) Major bump      (e.g., 0.1.0 -> 1.0.0+2)")
     print("==============================================")
     
     choice = input("Enter choice [1-4]: ").strip()
@@ -65,9 +66,9 @@ def bump_version():
     new_version_name = f"{major}.{minor}.{patch}"
     new_version_line = f"version: {new_version_name}+{new_code}"
     
-    # Replace the old version line
+    # Replace the old version line (handles both version with and without build code)
     updated_content = re.sub(
-        r"^version:\s*[0-9\.]+\+[0-9]+",
+        r"^version:\s*[0-9\.]+(?:\+[0-9]+)?",
         new_version_line,
         content,
         flags=re.MULTILINE
@@ -78,7 +79,7 @@ def bump_version():
 
     print("")
     print(f"✅ Version successfully updated!")
-    print(f"Old version: {version_name}+{version_code}")
+    print(f"Old version: {version_name}{'+' + str(version_code) if version_code_str else ''}")
     print(f"New version: {new_version_name}+{new_code}")
     print("==============================================")
 
