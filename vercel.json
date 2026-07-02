@@ -1,14 +1,7 @@
 {
-  "builds": [
-    {
-      "src": "backend_api/api/index.py",
-      "use": "@vercel/python"
+  "functions": {
+    "backend_api/api/index.py": {
+      "excludeFiles": "{venv/**,__pycache__/**,**/*.pyc,.python-version}"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "backend_api/api/index.py"
-    }
-  ]
+  }
 }
