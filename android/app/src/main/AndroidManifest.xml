@@ -3,7 +3,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="true" />
     <application
-        android:label="make_tone"
+        android:label="StyleTone AI"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity
