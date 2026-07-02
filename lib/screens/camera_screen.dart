@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:google_ml_kit/google_ml_kit.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -30,8 +30,8 @@ class _CameraScreenState extends State<CameraScreen> {
   late String _selectedOccasion;
   bool _isProcessing = false;
 
-  final FaceDetector _faceDetector = GoogleMlKit.vision.faceDetector(
-    FaceDetectorOptions(
+  final FaceDetector _faceDetector = FaceDetector(
+    options: FaceDetectorOptions(
       enableClassification: false,
       enableTracking: false,
       minFaceSize: 0.15,

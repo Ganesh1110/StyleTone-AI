@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
-import 'package:google_ml_kit/google_ml_kit.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 import '../screens/result_screen.dart';
 
@@ -64,8 +64,8 @@ class _PreviewScreenState extends State<PreviewScreen>
       // Dynamically run face detection if not pre-computed (e.g. from gallery pick)
       bool faceDetected = widget.faceDetected;
       if (!faceDetected) {
-        final faceDetector = GoogleMlKit.vision.faceDetector(
-          FaceDetectorOptions(
+        final faceDetector = FaceDetector(
+          options: FaceDetectorOptions(
             enableClassification: false,
             enableTracking: false,
             minFaceSize: 0.15,
