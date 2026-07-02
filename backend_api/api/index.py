@@ -3,6 +3,7 @@ import os
 # Add the parent directory to path so we can import image_processor
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -25,6 +26,7 @@ app.add_middleware(
 class ImageRequest(BaseModel):
     image: str
     occasion: str
+    gender: Optional[str] = "neutral"
 
 class DressUrlRequest(BaseModel):
     url: str
@@ -108,7 +110,7 @@ async def get_color_recommendation(request: ImageRequest):
     try:
         # The image_processor now calls fetch_palette_from_api internally
         # Make sure your image_processor.py uses this new function!
-        result = process_selfie(request.image, occasion)
+        result = process_selfie(request.image, occasion, request.gender)
         return result
     except Exception as e:
         print(f"Server error: {e}")

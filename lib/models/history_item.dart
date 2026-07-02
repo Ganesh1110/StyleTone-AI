@@ -6,6 +6,7 @@ class HistoryItem {
   final String occasion;
   final String imagePath;
   final ColorRecommendation recommendation;
+  final int rating; // 0 = unrated, 1 = liked, -1 = disliked
 
   HistoryItem({
     required this.id,
@@ -13,6 +14,7 @@ class HistoryItem {
     required this.occasion,
     required this.imagePath,
     required this.recommendation,
+    this.rating = 0,
   });
 
   Map<String, dynamic> toJson() => {
@@ -20,6 +22,7 @@ class HistoryItem {
         'date': date.toIso8601String(),
         'occasion': occasion,
         'imagePath': imagePath,
+        'rating': rating,
         'recommendation': {
           'detected_category': recommendation.detectedCategory,
           'primary_color': recommendation.primaryColor,
@@ -37,9 +40,23 @@ class HistoryItem {
       date: DateTime.parse(json['date'] as String),
       occasion: json['occasion'] as String,
       imagePath: json['imagePath'] as String,
+      rating: json['rating'] as int? ?? 0,
       recommendation: ColorRecommendation.fromJson(
         json['recommendation'] as Map<String, dynamic>,
       ),
+    );
+  }
+
+  HistoryItem copyWith({
+    int? rating,
+  }) {
+    return HistoryItem(
+      id: id,
+      date: date,
+      occasion: occasion,
+      imagePath: imagePath,
+      recommendation: recommendation,
+      rating: rating ?? this.rating,
     );
   }
 }

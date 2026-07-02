@@ -151,6 +151,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               imageFile: File(item.imagePath),
                               occasion: item.occasion,
                               preloadedRecommendation: rec,
+                              preloadedHistoryId: item.id,
+                              preloadedRating: item.rating,
                             ),
                           ),
                         ).then((_) => _loadHistory()); // Reload on return

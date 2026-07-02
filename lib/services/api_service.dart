@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'profile_service.dart';
 
 class ApiService {
   // CHANGE THIS TO YOUR DEPLOYED PYTHON BACKEND URL
@@ -32,13 +33,17 @@ class ApiService {
       List<int> imageBytes = await resizedFile.readAsBytes();
       String base64Image = base64Encode(imageBytes);
 
-      // 3. Build Payload
+      // 3. Load User Profile to get gender
+      final profile = await ProfileService().getProfile();
+
+      // 4. Build Payload
       final payload = {
         'image': 'data:image/jpeg;base64,$base64Image',
         'occasion': occasion,
+        'gender': profile.gender,
       };
 
-      // 4. Send POST request
+      // 5. Send POST request
       final response = await _dio.post('/recommend', data: payload);
 
       if (response.statusCode == 200 && response.data is Map) {

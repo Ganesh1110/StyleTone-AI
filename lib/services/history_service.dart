@@ -11,7 +11,7 @@ class HistoryService {
   static const String _historyKey = 'style_tone_history';
 
   // Save a successful color recommendation to history
-  Future<void> saveItem(
+  Future<String?> saveItem(
     File imageFile,
     String occasion,
     ColorRecommendation recommendation,
@@ -36,9 +36,11 @@ class HistoryService {
 
       await imageFile.copy(permanentImagePath);
 
+      final String itemId = timestamp.toString();
+
       // Create new history item
       final newItem = HistoryItem(
-        id: timestamp.toString(),
+        id: itemId,
         date: DateTime.now(),
         occasion: occasion,
         imagePath: permanentImagePath,
@@ -55,9 +57,30 @@ class HistoryService {
       final List<String> serialized =
           currentHistory.map((item) => json.encode(item.toJson())).toList();
       await prefs.setStringList(_historyKey, serialized);
+      return itemId;
     } catch (e) {
       // Log or handle error silently
       debugPrint('Error saving history item: $e');
+      return null;
+    }
+  }
+
+  // Update the rating of an existing history item
+  Future<void> updateRating(String id, int rating) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<HistoryItem> currentHistory = await getHistory();
+
+      final int index = currentHistory.indexWhere((item) => item.id == id);
+      if (index != -1) {
+        currentHistory[index] = currentHistory[index].copyWith(rating: rating);
+
+        final List<String> serialized =
+            currentHistory.map((item) => json.encode(item.toJson())).toList();
+        await prefs.setStringList(_historyKey, serialized);
+      }
+    } catch (e) {
+      debugPrint('Error updating history item rating: $e');
     }
   }
 

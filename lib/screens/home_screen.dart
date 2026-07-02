@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'camera_screen.dart';
 import 'preview_screen.dart';
 import 'history_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -54,6 +55,16 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
             tooltip: 'View History',
+          ),
+          IconButton(
+            icon: const Icon(Icons.person_outline_rounded, size: 28),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
+            tooltip: 'My Stylist Profile',
           ),
           const SizedBox(width: 12),
         ],

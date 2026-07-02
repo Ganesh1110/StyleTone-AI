@@ -92,7 +92,32 @@ def fetch_palette_from_api(skin_hex, occasion):
         print(f"API Fetch failed: {e}")
         return None
     
-def process_selfie(base64_image: str, occasion: str):
+def _get_gendered_stylist_tip(detected_season: str, occasion: str, gender: str) -> str:
+    gender = (gender or "neutral").lower()
+
+    if gender == "male":
+        if occasion == "office":
+            return f"👔 {detected_season} Office Style: Muted, professional tones. Pair a primary-colored suit or blazer with clean tailored trousers, a subtle accent tie, and a brown leather watch strap."
+        elif occasion == "party":
+            return f"🎉 {detected_season} Party Look: Bold, high-contrast styling. Rock a primary-colored sports coat over a dark shirt, accented with a pocketsquare and matching watch straps."
+        else:
+            return f"☀️ {detected_season} Casual: Relaxed, natural shades. Try a casual knit sweater in your primary color combined with dark denim and classic leather boots."
+    elif gender == "female":
+        if occasion == "office":
+            return f"👔 {detected_season} Office Style: Muted, professional tones. Wear a structured primary blazer over a neutral blouse, paired with delicate gold or silver jewelry and a matching handbag."
+        elif occasion == "party":
+            return f"🎉 {detected_season} Party Look: Vibrant, high-contrast styling. Let your primary color shine on a gorgeous dress or bold top, accessorized with statement earrings and bronze makeup accents."
+        else:
+            return f"☀️ {detected_season} Casual: Relaxed, natural shades. Layer a primary-colored oversized cardigan or jacket over light linens, completed with amber or leather accessories."
+    else:  # neutral or other
+        if occasion == "office":
+            return f"👔 {detected_season} Office Style: Muted, professional tones that project polished confidence and balanced coordination."
+        elif occasion == "party":
+            return f"🎉 {detected_season} Party Look: Vibrant, high-contrast palette styled to command attention and make a memorable statement."
+        else:
+            return f"☀️ {detected_season} Casual: Relaxed, natural shades curated for everyday comfort and clean color harmony."
+
+def process_selfie(base64_image: str, occasion: str, gender: str = "neutral"):
     try:
         # --- 1. EXTRACT SKIN TONE ---
         if base64_image.startswith("data:image"):
@@ -104,7 +129,7 @@ def process_selfie(base64_image: str, occasion: str):
         if img is None:
             raise ValueError("Failed to decode image")
 
-        # White balance & K-Means to find skin color
+        # White balance correction
         img_lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(img_lab)
         l_avg = np.mean(l)
@@ -112,12 +137,38 @@ def process_selfie(base64_image: str, occasion: str):
         img_lab = cv2.merge([l, a, b])
         img = cv2.cvtColor(img_lab, cv2.COLOR_LAB2BGR)
 
-        pixels = img.reshape(-1, 3)
+        # Convert to HSV and YCrCb for high-accuracy skin segmentation
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+
+        # Define HSV bounds for skin tones
+        lower_hsv = np.array([0, 20, 50], dtype=np.uint8)
+        upper_hsv = np.array([20, 150, 255], dtype=np.uint8)
+
+        # Define YCrCb bounds for skin tones
+        lower_ycrcb = np.array([0, 133, 77], dtype=np.uint8)
+        upper_ycrcb = np.array([255, 173, 127], dtype=np.uint8)
+
+        # Create threshold masks
+        mask_hsv = cv2.inRange(hsv, lower_hsv, upper_hsv)
+        mask_ycrcb = cv2.inRange(ycrcb, lower_ycrcb, upper_ycrcb)
+
+        # Combine both HSV & YCrCb boundaries to reject hair/lips/background
+        skin_mask = cv2.bitwise_and(mask_hsv, mask_ycrcb)
+
+        # Extract skin pixels only
+        skin_pixels = img[skin_mask > 0]
+
+        # Fallback to entire image if segmentation returns too few pixels
+        if len(skin_pixels) < 100:
+            skin_pixels = img.reshape(-1, 3)
+
+        # Run K-Means only on isolated skin pixels
         kmeans = KMeans(n_clusters=2, n_init=10, random_state=42)
-        kmeans.fit(pixels)
+        kmeans.fit(skin_pixels)
         dominant_colors = kmeans.cluster_centers_.astype(int)
 
-        # Select the brighter cluster (skin)
+        # Select the brighter cluster (pure skin)
         skin_rgb = None
         max_l = -1
         for color in dominant_colors:
@@ -240,12 +291,7 @@ def process_selfie(base64_image: str, occasion: str):
         secondary_color = selected_palette[1]
         accent_color = selected_palette[2]
 
-        if occasion == "office":
-            msg = f"👔 {detected_season} Office Style: Muted, professional tones that project polished confidence."
-        elif occasion == "party":
-            msg = f"🎉 {detected_season} Party Look: Vibrant, high-contrast palette styled to command attention."
-        else:
-            msg = f"☀️ {detected_season} Casual: Relaxed, natural shades curated for everyday harmony."
+        msg = _get_gendered_stylist_tip(detected_season, occasion, gender)
 
         return {
             "detected_category": f"{detected_season} Season",

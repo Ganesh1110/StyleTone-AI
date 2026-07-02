@@ -12,12 +12,16 @@ class ResultScreen extends StatefulWidget {
   final File imageFile;
   final String occasion;
   final ColorRecommendation? preloadedRecommendation;
+  final String? preloadedHistoryId;
+  final int? preloadedRating;
 
   const ResultScreen({
     super.key,
     required this.imageFile,
     required this.occasion,
     this.preloadedRecommendation,
+    this.preloadedHistoryId,
+    this.preloadedRating,
   });
 
   @override
@@ -30,6 +34,8 @@ class _ResultScreenState extends State<ResultScreen> {
   bool _isLoading = true;
   late final TtsService _tts;
   String? _ttsStatusMessage;
+  String? _historyId;
+  int _rating = 0;
 
   // Step-by-step loading states
   final List<String> _loadingSteps = [
@@ -48,6 +54,8 @@ class _ResultScreenState extends State<ResultScreen> {
     _tts = TtsService(onProgressChanged: _onTtsProgress);
     if (widget.preloadedRecommendation != null) {
       _recommendation = widget.preloadedRecommendation;
+      _historyId = widget.preloadedHistoryId;
+      _rating = widget.preloadedRating ?? 0;
       _isLoading = false;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _speakRecommendation();
@@ -116,7 +124,7 @@ class _ResultScreenState extends State<ResultScreen> {
 
       // Save to history cache
       final historyService = HistoryService();
-      await historyService.saveItem(widget.imageFile, widget.occasion, recommendation);
+      _historyId = await historyService.saveItem(widget.imageFile, widget.occasion, recommendation);
 
       _speakRecommendation();
     } catch (e) {
@@ -125,6 +133,32 @@ class _ResultScreenState extends State<ResultScreen> {
         _errorMessage = e.toString();
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _updateRating(int newRating) async {
+    if (_historyId == null) return;
+
+    final nextRating = _rating == newRating ? 0 : newRating;
+
+    final historyService = HistoryService();
+    await historyService.updateRating(_historyId!, nextRating);
+
+    setState(() {
+      _rating = nextRating;
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(nextRating == 1
+              ? 'Thanks for the feedback! (Liked)'
+              : nextRating == -1
+                  ? 'Thanks for the feedback! (Disliked)'
+                  : 'Feedback cleared.'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
     }
   }
 
@@ -446,6 +480,48 @@ class _ResultScreenState extends State<ResultScreen> {
                       height: 1.5,
                       color: Colors.black87,
                     ),
+                  ),
+                  const Divider(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Was this analysis accurate?',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black54,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              _rating == 1
+                                  ? Icons.thumb_up_rounded
+                                  : Icons.thumb_up_outlined,
+                              color: _rating == 1 ? Colors.green : Colors.grey,
+                              size: 20,
+                            ),
+                            onPressed: _historyId == null
+                                ? null
+                                : () => _updateRating(1),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              _rating == -1
+                                  ? Icons.thumb_down_rounded
+                                  : Icons.thumb_down_outlined,
+                              color: _rating == -1 ? Colors.red : Colors.grey,
+                              size: 20,
+                            ),
+                            onPressed: _historyId == null
+                                ? null
+                                : () => _updateRating(-1),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
