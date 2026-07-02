@@ -1,0 +1,60 @@
+# Flutter / Dart
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+*.iml
+
+# Android
+/android/app/debug
+/android/app/profile
+/android/app/release
+*.apk
+*.aab
+local.properties
+key.properties
+android/key.properties
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Runner.xcodeproj/project.xcworkspace
+ios/Runner.xcodeproj/xcuserdata
+
+# Python / Backend
+backend_api/venv/
+backend_api/__pycache__/
+backend_api/.env
+*.pyc
+__pycache__/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+*.env
+
+# Misc
+*.class
+*.jar
+*.war
+*.nar
+*.tar.gz
+*.zip
