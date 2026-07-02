@@ -22,7 +22,7 @@
 <!-- Download & Install Section -->
 <h2 align="center">📥 Download & Install</h2>
 <p align="center">
-  <strong>Available for Android, Windows & Linux (Dev) 😍</strong>
+  <strong>Available for Android 😍</strong>
 </p>
 
 <p align="center">
@@ -30,7 +30,7 @@
     <img src="https://img.shields.io/badge/Github%20Releases-black?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Releases">
   </a>
   &nbsp;&nbsp;
-  <a href="https://sourceforge.net/projects/styletone-ai/">
+  <a href="https://sourceforge.net/projects/styletone-ai/files/app-release.apk/download">
     <img src="https://img.shields.io/badge/SourceForge-Download%20Now-brightgreen?style=for-the-badge&logo=sourceforge&logoColor=white" alt="SourceForge">
   </a>
 </p>
