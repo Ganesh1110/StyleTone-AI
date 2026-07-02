@@ -5,16 +5,19 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 import '../services/api_service.dart';
 import '../services/tts_service.dart';
+import '../services/history_service.dart';
 import '../models/color_recommendation.dart';
 
 class ResultScreen extends StatefulWidget {
   final File imageFile;
   final String occasion;
+  final ColorRecommendation? preloadedRecommendation;
 
   const ResultScreen({
     super.key,
     required this.imageFile,
     required this.occasion,
+    this.preloadedRecommendation,
   });
 
   @override
@@ -43,8 +46,16 @@ class _ResultScreenState extends State<ResultScreen> {
   void initState() {
     super.initState();
     _tts = TtsService(onProgressChanged: _onTtsProgress);
-    _startLoadingTimer();
-    _fetchRecommendations();
+    if (widget.preloadedRecommendation != null) {
+      _recommendation = widget.preloadedRecommendation;
+      _isLoading = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _speakRecommendation();
+      });
+    } else {
+      _startLoadingTimer();
+      _fetchRecommendations();
+    }
     _tts.init();
   }
 
@@ -96,10 +107,17 @@ class _ResultScreenState extends State<ResultScreen> {
       );
 
       _loadingTimer?.cancel();
+      final recommendation = ColorRecommendation.fromJson(data);
+
       setState(() {
-        _recommendation = ColorRecommendation.fromJson(data);
+        _recommendation = recommendation;
         _isLoading = false;
       });
+
+      // Save to history cache
+      final historyService = HistoryService();
+      await historyService.saveItem(widget.imageFile, widget.occasion, recommendation);
+
       _speakRecommendation();
     } catch (e) {
       _loadingTimer?.cancel();
