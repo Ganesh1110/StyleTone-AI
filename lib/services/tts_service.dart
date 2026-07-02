@@ -9,7 +9,6 @@ import 'phonemizer.dart';
 class TtsService {
   final KittenTtsFlutter _tts = KittenTtsFlutter();
   final AudioPlayer _audioPlayer = AudioPlayer();
-  final Phonemizer _phonemizer = Phonemizer();
 
   bool _initialized = false;
   bool _initializing = false;
@@ -21,7 +20,7 @@ class TtsService {
   double get downloadProgress => _downloadProgress;
   String? get statusMessage => _statusMessage;
 
-  final VoidCallback? onProgressChanged;
+  VoidCallback? onProgressChanged;
 
   TtsService({this.onProgressChanged});
 
@@ -69,6 +68,7 @@ class TtsService {
       _statusMessage = "Voice ready";
     } catch (e) {
       _statusMessage = "Voice init failed: $e";
+      debugPrint('TTS init error: $e');
     } finally {
       _initializing = false;
       onProgressChanged?.call();
@@ -76,52 +76,71 @@ class TtsService {
   }
 
   Future<void> _downloadIfMissing(
-      String url, String destPath, String label) async {
+    String url,
+    String destPath,
+    String label,
+  ) async {
     final file = File(destPath);
-    if (file.existsSync()) return;
+    if (await file.exists()) return;
 
     _statusMessage = label;
     _downloadProgress = 0.0;
     onProgressChanged?.call();
 
-    final request = http.Request('GET', Uri.parse(url));
-    final response = await request.send();
+    final client = http.Client();
+    try {
+      final request = http.Request('GET', Uri.parse(url));
+      final response = await client.send(request);
 
-    if (response.statusCode != 200) {
-      throw Exception("Download failed: ${response.statusCode}");
-    }
-
-    final contentLength = response.contentLength ?? 0;
-    int downloaded = 0;
-    final sink = file.openWrite();
-
-    await response.stream.forEach((chunk) {
-      sink.add(chunk);
-      downloaded += chunk.length;
-      if (contentLength > 0) {
-        _downloadProgress = downloaded / contentLength;
-        onProgressChanged?.call();
+      if (response.statusCode != 200) {
+        throw Exception("Download failed: ${response.statusCode}");
       }
-    });
-    await sink.close();
-    _downloadProgress = 1.0;
-    onProgressChanged?.call();
+
+      final contentLength = response.contentLength ?? 0;
+      final fileSink = file.openWrite();
+      int bytesDownloaded = 0;
+
+      await for (final chunk in response.stream) {
+        fileSink.add(chunk);
+        bytesDownloaded += chunk.length;
+        if (contentLength > 0) {
+          _downloadProgress = bytesDownloaded / contentLength;
+          onProgressChanged?.call();
+        }
+      }
+
+      await fileSink.close();
+      _downloadProgress = 1.0;
+      onProgressChanged?.call();
+    } catch (e) {
+      if (await file.exists()) {
+        try {
+          await file.delete();
+        } catch (_) {}
+      }
+      rethrow;
+    } finally {
+      client.close();
+    }
   }
 
   Future<void> speak(String text, {String voice = "Bella"}) async {
-    if (!_initialized) return;
+    if (!_initialized) {
+      debugPrint('TTS not initialized');
+      return;
+    }
 
     try {
-      final phonemes = _phonemizer.toPhonemes(text);
+      final phonemizedText = Phonemizer().toPhonemes(text);
       final wavBytes = await _tts.generateWavBytes(
-        phonemizedText: phonemes,
-        language: "en",
+        phonemizedText: phonemizedText,
+        language: 'en',
         voice: voice,
+        speed: 1.0,
       );
-      final tempDir = await getTemporaryDirectory();
-      final wavFile = File('${tempDir.path}/tts_${DateTime.now().millisecondsSinceEpoch}.wav');
-      await wavFile.writeAsBytes(wavBytes);
-      await _audioPlayer.play(DeviceFileSource(wavFile.path));
+
+      // Play directly using BytesSource (no temp file needed)
+      await _audioPlayer.play(BytesSource(wavBytes));
     } catch (e) {
       debugPrint('TTS speak failed: $e');
     }

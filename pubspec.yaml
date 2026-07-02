@@ -26,6 +26,7 @@ dependencies:
   # UI Helpers
   flutter_spinkit: ^5.2.0
   intl: ^0.18.0
+  shared_preferences: ^2.2.0
 
   # TTS (Text-to-Speech)
   kitten_tts_flutter: ^0.0.1

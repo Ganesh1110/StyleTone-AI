@@ -7,7 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:image/image.dart' as img;
 
-import '../screens/result_screen.dart';
+import '../screens/preview_screen.dart';
 
 class CameraScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -59,33 +59,27 @@ class _CameraScreenState extends State<CameraScreen> {
     setState(() => _isProcessing = true);
 
     try {
-      // 1. Take the picture
       final image = await _controller.takePicture();
       final File originalFile = File(image.path);
 
-      // 2. Detect face in the image
       final inputImage = InputImage.fromFile(originalFile);
       final List<Face> faces = await _faceDetector.processImage(inputImage);
 
       File croppedFile;
 
       if (faces.isNotEmpty) {
-        // 3. Crop the face region (using the first face)
         final face = faces.first;
         final rect = face.boundingBox;
 
-        // Read the image to crop
         final bytes = await originalFile.readAsBytes();
         final decodedImage = img.decodeImage(bytes);
 
         if (decodedImage != null) {
-          // Ensure crop bounds are within image
           int x = rect.left.toInt().clamp(0, decodedImage.width - 1);
           int y = rect.top.toInt().clamp(0, decodedImage.height - 1);
           int w = rect.width.toInt().clamp(1, decodedImage.width - x);
           int h = rect.height.toInt().clamp(1, decodedImage.height - y);
 
-          // Crop just the face region (ML Kit bounding box)
           final croppedImg = img.copyCrop(
             decodedImage,
             x: x,
@@ -94,7 +88,6 @@ class _CameraScreenState extends State<CameraScreen> {
             height: h,
           );
 
-          // Save cropped image to temp file
           final tempDir = await getTemporaryDirectory();
           final croppedPath = p.join(tempDir.path, 'face_crop.jpg');
           await File(
@@ -103,32 +96,20 @@ class _CameraScreenState extends State<CameraScreen> {
 
           croppedFile = File(croppedPath);
         } else {
-          // Fallback if decoding fails
           croppedFile = originalFile;
         }
       } else {
-        // 4. No face found: show a warning but still use the full image
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'No face detected. Using full image. Please ensure good lighting.',
-              ),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
         croppedFile = originalFile;
       }
 
-      // 5. Navigate to Result Screen with the cropped image
       if (mounted) {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ResultScreen(
+            builder: (context) => PreviewScreen(
               imageFile: croppedFile,
               occasion: _selectedOccasion,
+              faceDetected: faces.isNotEmpty,
             ),
           ),
         );
@@ -144,7 +125,6 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  // Optional: Pick from gallery for testing
   Future<void> _pickFromGallery() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -155,8 +135,11 @@ class _CameraScreenState extends State<CameraScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                ResultScreen(imageFile: file, occasion: _selectedOccasion),
+            builder: (context) => PreviewScreen(
+              imageFile: file,
+              occasion: _selectedOccasion,
+              faceDetected: true,
+            ),
           ),
         );
       }
@@ -166,8 +149,11 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
         title: const Text('StyleTone AI'),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.photo_library),
@@ -178,43 +164,126 @@ class _CameraScreenState extends State<CameraScreen> {
       ),
       body: Column(
         children: [
-          // Occasion Selector
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildOccasionChip('Office', 'office'),
-                const SizedBox(width: 8),
-                _buildOccasionChip('Party', 'party'),
-                const SizedBox(width: 8),
-                _buildOccasionChip('Casual', 'casual'),
-              ],
-            ),
-          ),
-          // Camera Preview
           Expanded(
-            child: FutureBuilder<void>(
-              future: _initializeControllerFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.done) {
-                  return CameraPreview(_controller);
-                } else {
-                  return const Center(child: CircularProgressIndicator());
-                }
-              },
-            ),
-          ),
-          // Capture Button
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24.0),
             child: Stack(
               alignment: Alignment.center,
               children: [
-                if (_isProcessing) const CircularProgressIndicator(),
-                FloatingActionButton(
-                  onPressed: _isProcessing ? null : _takePictureAndProcess,
-                  child: const Icon(Icons.camera_alt),
+                FutureBuilder<void>(
+                  future: _initializeControllerFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.done) {
+                      return CameraPreview(_controller);
+                    } else {
+                      return const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      );
+                    }
+                  },
+                ),
+                // Face guide overlay (semitransparent dim outer, transparent oval center)
+                Positioned.fill(
+                  child: ClipPath(
+                    clipper: FaceOverlayClipper(),
+                    child: Container(
+                      color: Colors.black.withOpacity(0.5),
+                    ),
+                  ),
+                ),
+                // White oval guide border and instructional text
+                Center(
+                  child: Container(
+                    width: MediaQuery.of(context).size.width * 0.7,
+                    height: MediaQuery.of(context).size.height * 0.45,
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.all(Radius.elliptical(200, 250)),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.8),
+                        width: 2.5,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.face,
+                          size: 48,
+                          color: Colors.white.withOpacity(0.8),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Position your face here',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black.withOpacity(0.5),
+                                offset: const Offset(0, 1),
+                                blurRadius: 2,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Processing overlay
+                if (_isProcessing)
+                  Container(
+                    color: Colors.black45,
+                    child: const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          // Occasion label + capture button
+          Container(
+            color: Colors.black,
+            padding: const EdgeInsets.symmetric(vertical: 20.0),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    _selectedOccasion.toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                      ),
+                    ),
+                    FloatingActionButton(
+                      onPressed: _isProcessing ? null : _takePictureAndProcess,
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.deepPurple,
+                      child: const Icon(Icons.camera_alt, size: 32),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -223,20 +292,23 @@ class _CameraScreenState extends State<CameraScreen> {
       ),
     );
   }
+}
 
-  Widget _buildOccasionChip(String label, String value) {
-    final isSelected = _selectedOccasion == value;
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) {
-        setState(() {
-          _selectedOccasion = value;
-        });
-      },
-      backgroundColor: Colors.grey[200],
-      selectedColor: Colors.deepPurple[100],
-      checkmarkColor: Colors.deepPurple,
-    );
+class FaceOverlayClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    final ovalPath = Path()
+      ..addOval(
+        Rect.fromCenter(
+          center: Offset(size.width / 2, size.height / 2),
+          width: size.width * 0.7,
+          height: size.height * 0.45,
+        ),
+      );
+    return Path.combine(PathOperation.difference, path, ovalPath);
   }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }

@@ -30,6 +30,8 @@
 	<string>Main</string>
 	<key>NSCameraUsageDescription</key>
 	<string>We need camera access to detect your skin tone and recommend the best colors for you.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to your photo library to analyze your skin tone and recommend the best colors for you.</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

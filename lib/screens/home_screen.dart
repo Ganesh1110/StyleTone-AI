@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'camera_screen.dart';
-import 'result_screen.dart';
+import 'preview_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -25,9 +25,10 @@ class _HomeScreenState extends State<HomeScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ResultScreen(
+          builder: (context) => PreviewScreen(
             imageFile: File(pickedFile.path),
             occasion: _selectedOccasion,
+            faceDetected: false, // Perform dynamic face detection inside PreviewScreen
           ),
         ),
       );

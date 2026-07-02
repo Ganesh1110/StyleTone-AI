@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -24,17 +25,58 @@ class _ResultScreenState extends State<ResultScreen> {
   ColorRecommendation? _recommendation;
   String _errorMessage = '';
   bool _isLoading = true;
-  final TtsService _tts = TtsService();
+  late final TtsService _tts;
+  String? _ttsStatusMessage;
+
+  // Step-by-step loading states
+  final List<String> _loadingSteps = [
+    'Analyzing facial features...',
+    'Extracting skin undertones...',
+    'Determining seasonal palette...',
+    'Curating style recommendations...',
+    'Finalizing personalized report...',
+  ];
+  int _currentStepIndex = 0;
+  Timer? _loadingTimer;
 
   @override
   void initState() {
     super.initState();
+    _tts = TtsService(onProgressChanged: _onTtsProgress);
+    _startLoadingTimer();
     _fetchRecommendations();
     _tts.init();
   }
 
+  void _onTtsProgress() {
+    if (mounted) {
+      setState(() {
+        _ttsStatusMessage = _tts.statusMessage;
+      });
+    }
+  }
+
+  void _startLoadingTimer() {
+    _currentStepIndex = 0;
+    _loadingTimer?.cancel();
+    _loadingTimer = Timer.periodic(const Duration(milliseconds: 1200), (timer) {
+      if (mounted && _isLoading) {
+        setState(() {
+          if (_currentStepIndex < _loadingSteps.length - 1) {
+            _currentStepIndex++;
+          } else {
+            timer.cancel();
+          }
+        });
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _loadingTimer?.cancel();
     _tts.dispose();
     super.dispose();
   }
@@ -44,6 +86,7 @@ class _ResultScreenState extends State<ResultScreen> {
       _isLoading = true;
       _errorMessage = '';
     });
+    _startLoadingTimer();
 
     try {
       final apiService = ApiService();
@@ -52,12 +95,14 @@ class _ResultScreenState extends State<ResultScreen> {
         occasion: widget.occasion,
       );
 
+      _loadingTimer?.cancel();
       setState(() {
         _recommendation = ColorRecommendation.fromJson(data);
         _isLoading = false;
       });
       _speakRecommendation();
     } catch (e) {
+      _loadingTimer?.cancel();
       setState(() {
         _errorMessage = e.toString();
         _isLoading = false;
@@ -67,9 +112,93 @@ class _ResultScreenState extends State<ResultScreen> {
 
   Future<void> _speakRecommendation() async {
     if (_recommendation == null) return;
+
+    if (_tts.isInitialized) {
+      final message = _buildSpeechMessage();
+      await _tts.speak(message);
+      return;
+    }
+
+    // Show progress dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            _tts.onProgressChanged = () {
+              setDialogState(() {});
+            };
+
+            final progress = _tts.downloadProgress;
+            final status = _tts.statusMessage ?? 'Preparing voice...';
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                children: [
+                  Icon(Icons.download_rounded, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 12),
+                  const Text('Downloading Voice'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    status,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 16),
+                  LinearProgressIndicator(
+                    value: progress == 0.0 && _tts.isInitializing ? null : progress,
+                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 8),
+                  if (progress > 0.0 && progress < 1.0)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        '${(progress * 100).toStringAsFixed(0)}%',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    // Start/Await initialization
     await _tts.init();
-    final message = _buildSpeechMessage();
-    await _tts.speak(message);
+
+    // Close progress dialog if it's open
+    if (mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+      // Restore default callback
+      _tts.onProgressChanged = _onTtsProgress;
+    }
+
+    if (_tts.isInitialized) {
+      final message = _buildSpeechMessage();
+      await _tts.speak(message);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_tts.statusMessage ?? 'Failed to initialize voice')),
+        );
+      }
+    }
   }
 
   String _buildSpeechMessage() {
@@ -119,8 +248,22 @@ class _ResultScreenState extends State<ResultScreen> {
               icon: Icon(
                 _tts.isInitialized ? Icons.volume_up : Icons.volume_off,
               ),
-              tooltip: 'Read aloud',
+              tooltip: _tts.isInitialized
+                  ? 'Read aloud'
+                  : (_ttsStatusMessage ?? 'Voice loading...'),
               onPressed: _speakRecommendation,
+            ),
+          if (_tts.isInitializing)
+            const Padding(
+              padding: EdgeInsets.all(12.0),
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: Colors.white,
+                ),
+              ),
             ),
         ],
       ),
@@ -139,16 +282,35 @@ class _ResultScreenState extends State<ResultScreen> {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          SpinKitFadingCube(color: Colors.deepPurple, size: 50.0),
-          SizedBox(height: 24),
-          Text(
-            'Analyzing your skin tone...',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+        children: [
+          const SpinKitFadingCube(color: Colors.deepPurple, size: 50.0),
+          const SizedBox(height: 32),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: animation.drive(
+                    Tween<Offset>(
+                      begin: const Offset(0.0, 0.2),
+                      end: Offset.zero,
+                    ).chain(CurveTween(curve: Curves.easeOut)),
+                  ),
+                  child: child,
+                ),
+              );
+            },
+            child: Text(
+              _loadingSteps[_currentStepIndex],
+              key: ValueKey<int>(_currentStepIndex),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.deepPurple),
+              textAlign: TextAlign.center,
+            ),
           ),
-          SizedBox(height: 8),
-          Text(
-            'Our AI is finding your perfect palette',
+          const SizedBox(height: 12),
+          const Text(
+            'Please wait, this takes ~5 seconds',
             style: TextStyle(color: Colors.grey),
           ),
         ],
