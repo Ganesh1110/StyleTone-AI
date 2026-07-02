@@ -2,12 +2,14 @@ import cv2
 import numpy as np
 import base64
 import json
+import os
 import requests
 import colorsys
 from sklearn.cluster import KMeans
 
 # Load the JSON only for fallback (if API fails)
-with open("color_matrix.json", "r") as f:
+_base_dir = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(_base_dir, "color_matrix.json"), "r") as f:
     COLOR_MATRIX = json.load(f)
 
 def hex_to_rgb(hex_code):
