@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'screens/camera_screen.dart';
+import 'screens/home_screen.dart';
 
 List<CameraDescription>? cameras;
 
@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: cameras != null && cameras!.isNotEmpty
-          ? CameraScreen(cameras: cameras!)
+          ? HomeScreen(cameras: cameras!)
           : const Scaffold(
               body: Center(child: Text('No cameras available on this device.')),
             ),
