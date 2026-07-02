@@ -64,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             children: [
               const SizedBox(height: 48),
-              Icon(Icons.palette_outlined, size: 64, color: theme.colorScheme.primary),
+              const StyleToneLogo(size: 90),
               const SizedBox(height: 16),
               Text(
                 'StyleTone AI',
@@ -216,6 +216,49 @@ class _OptionCard extends StatelessWidget {
               Icon(Icons.chevron_right, color: color),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class StyleToneLogo extends StatelessWidget {
+  final double size;
+
+  const StyleToneLogo({super.key, this.size = 96});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(size * 0.22),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF8A2387), Color(0xFFE94057), Color(0xFFF27121)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFE94057).withOpacity(0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Icon(
+          Icons.checkroom_rounded,
+          size: size * 0.55,
+          color: Colors.white,
+          shadows: [
+            Shadow(
+              color: Colors.black.withOpacity(0.2),
+              offset: const Offset(0, 2),
+              blurRadius: 4,
+            ),
+          ],
         ),
       ),
     );
