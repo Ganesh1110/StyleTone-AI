@@ -40,39 +40,58 @@ def adjust_color_for_occasion(hex_color, occasion):
     return rgb_to_hex((r*255, g*255, b*255))
 
 def fetch_palette_from_api(skin_hex, occasion):
-    """
-    Fetches a color palette from thecolorapi.com based on the exact skin tone.
-    Then adjusts the colors for the specific occasion.
-    """
     try:
-        # 1. Get Analogous colors (usually 5 colors) from the API
-        url = f"https://www.thecolorapi.com/scheme?hex={skin_hex.replace('#','')}&mode=analogic&count=5"
+        # --- CHANGE 1: Use 'triad' instead of 'analogic' for more variety ---
+        url = f"https://www.thecolorapi.com/scheme?hex={skin_hex.replace('#','')}&mode=triad&count=6"
         response = requests.get(url, timeout=5)
         
         if response.status_code == 200:
             data = response.json()
-            # Extract 5 hex codes from the API response
             raw_colors = [c['hex']['value'] for c in data['colors']]
             
-            # 2. Filter/Adjust them for the occasion
-            adjusted_colors = [adjust_color_for_occasion(c, occasion) for c in raw_colors]
+            # Pick 3 distinct colors: index 0, 2, 4 (skips the closest ones)
+            selected = [raw_colors[0], raw_colors[2], raw_colors[4]]
             
-            # 3. Pick the best 3: Primary (closest to skin), Secondary, Accent
-            # We'll just take the first 3 for simplicity
+            # --- CHANGE 2: Gentler occasion adjustment ---
+            adjusted_colors = []
+            for c in selected:
+                r, g, b = hex_to_rgb(c)
+                h, s, v = colorsys.rgb_to_hsv(r/255.0, g/255.0, b/255.0)
+                
+                if occasion == "office":
+                    # Only reduce saturation by 20% (was 40%), and darken only 10% (was 25%)
+                    s = max(0.3, s * 0.8)  
+                    v = max(0.4, v * 0.9)
+                elif occasion == "party":
+                    s = min(1.0, s * 1.3)
+                    v = min(1.0, v * 1.2)
+                else:  # casual
+                    s = s * 0.95
+                
+                r2, g2, b2 = colorsys.hsv_to_rgb(h, s, v)
+                adjusted_colors.append(rgb_to_hex((r2*255, g2*255, b2*255)))
+            
+            # --- CHANGE 3: Better, more specific messages ---
+            if occasion == "office":
+                msg = f"👔 Office power colors! Muted and professional tones that command respect."
+            elif occasion == "party":
+                msg = f"🎉 Party vibes! Vibrant, high-energy colors that make you stand out."
+            else:
+                msg = f"☀️ Casual and effortless. Soft, everyday colors that feel natural."
+            
             return {
                 "primary_color": adjusted_colors[0],
                 "secondary_color": adjusted_colors[1],
                 "accent_color": adjusted_colors[2],
                 "detected_category": f"Dynamic ({occasion.capitalize()})",
-                "message": f"✨ Perfect {occasion} look! Your exact skin tone pairs beautifully with these dynamic hues."
+                "message": msg
             }
         else:
             raise Exception("API returned non-200")
-            
     except Exception as e:
-        print(f"API Fetch failed: {e}. Falling back to static JSON.")
-        return None  # Fallback to JSON
-
+        print(f"API Fetch failed: {e}")
+        return None
+    
 def process_selfie(base64_image: str, occasion: str):
     try:
         # --- 1. EXTRACT SKIN TONE (Same K-Means logic as before) ---
