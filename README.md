@@ -19,6 +19,30 @@
 
 ---
 
+<!-- Download & Install Section -->
+<h2 align="center">📥 Download & Install</h2>
+<p align="center">
+  <strong>Available for Android, Windows & Linux (Dev) 😍</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Ganesh1110/StyleTone-AI/releases">
+    <img src="https://img.shields.io/badge/Github%20Releases-black?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Releases">
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://sourceforge.net/projects/styletone-ai/">
+    <img src="https://img.shields.io/badge/SourceForge-Download%20Now-brightgreen?style=for-the-badge&logo=sourceforge&logoColor=white" alt="SourceForge">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://apt.izzysoft.de/">
+    <img src="https://img.shields.io/badge/Get%20it%20on-IzzyOnDroid-blue?style=for-the-badge&logo=android&logoColor=white" alt="IzzyOnDroid">
+  </a>
+</p>
+
+---
+
 ## 🌟 Key Features
 
 StyleTone AI is a cross-platform mobile assistant that acts as a personal styling consultant. It uses computer vision, on-device AI quality check, and professional color theory to detect your seasonal color family and recommend customized outfits.
