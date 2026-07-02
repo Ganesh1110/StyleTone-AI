@@ -94,7 +94,7 @@ def fetch_palette_from_api(skin_hex, occasion):
     
 def process_selfie(base64_image: str, occasion: str):
     try:
-        # --- 1. EXTRACT SKIN TONE (Same K-Means logic as before) ---
+        # --- 1. EXTRACT SKIN TONE ---
         if base64_image.startswith("data:image"):
             base64_image = base64_image.split(",")[1]
         
@@ -127,51 +127,146 @@ def process_selfie(base64_image: str, occasion: str):
                 skin_rgb = color
         if skin_rgb is None:
             skin_rgb = dominant_colors[0]
-            
-        # Convert skin RGB to HEX
-        skin_hex = rgb_to_hex((skin_rgb[2], skin_rgb[1], skin_rgb[0])) # BGR to RGB
 
-        # --- 2. FETCH DYNAMIC PALETTE (API FIRST) ---
-        result = fetch_palette_from_api(skin_hex, occasion)
-        
-        if result:
-            return result
+        # Convert dominant BGR skin color to LAB for perceptual distance
+        skin_bgr_pixel = np.uint8([[skin_rgb]])
+        skin_lab_pixel = cv2.cvtColor(skin_bgr_pixel, cv2.COLOR_BGR2LAB)[0][0]
+        l_val = float(skin_lab_pixel[0])
+        a_val = float(skin_lab_pixel[1])
+        b_val = float(skin_lab_pixel[2])
 
-        # --- 3. FALLBACK TO STATIC JSON (if API fails) ---
-        print("Falling back to static color_matrix.json")
-        skin_lab = cv2.cvtColor(np.uint8([[skin_rgb]]), cv2.COLOR_BGR2LAB)[0][0]
-        l_channel = skin_lab[0]
-        a_channel = skin_lab[1]
+        # --- 2. CIELAB DELTA E SEASONAL CLASSIFICATION ---
+        # Anchor skin colors (RGB) representing diverse tones across the 4 seasons
+        season_anchors_rgb = {
+            "Spring": [
+                [248, 213, 177],  # Light Peach
+                [243, 225, 196],  # Golden Ivory
+                [228, 184, 137]   # Warm Honey
+            ],
+            "Summer": [
+                [236, 213, 197],  # Rosy Beige
+                [255, 240, 245],  # Cool Alabaster
+                [188, 163, 146]   # Soft Cocoa
+            ],
+            "Autumn": [
+                [208, 158, 114],  # Warm Amber
+                [172, 122, 75],   # Golden Bronze
+                [133, 84, 46]     # Deep Terracotta
+            ],
+            "Winter": [
+                [250, 244, 240],  # Stark Porcelain
+                [174, 144, 118],  # Cool Olive
+                [120, 81, 57],    # Cool Cocoa
+                [80, 55, 40]      # Deep Espresso
+            ]
+        }
 
-        depth = "Deep" if l_channel < 60 else "Light"
-        if a_channel > 8:
-            tone = "Warm"
-        elif a_channel < -4:
-            tone = "Cool"
+        # Calculate minimum Euclidean distance (Delta E proxy) in CIELAB space
+        distances = {}
+        for season, anchors in season_anchors_rgb.items():
+            min_dist = float('inf')
+            for r, g, b_val_item in anchors:
+                anchor_bgr = np.uint8([[[b_val_item, g, r]]])
+                anchor_lab = cv2.cvtColor(anchor_bgr, cv2.COLOR_BGR2LAB)[0][0]
+                dist = np.sqrt(
+                    (l_val - float(anchor_lab[0]))**2 +
+                    (a_val - float(anchor_lab[1]))**2 +
+                    (b_val - float(anchor_lab[2]))**2
+                )
+                if dist < min_dist:
+                    min_dist = dist
+            distances[season] = min_dist
+
+        # Determine classified season
+        detected_season = min(distances, key=distances.get)
+
+        # Calculate confidence using exponential similarity (Softmax style)
+        gamma = 0.04  # sensitivity factor
+        similarities = {s: np.exp(-gamma * d) for s, d in distances.items()}
+        sum_sim = sum(similarities.values())
+        confidences = {s: int(round((sim / sum_sim) * 100)) for s, sim in similarities.items()}
+        confidence = confidences[detected_season]
+
+        # Define curated seasonal palettes and descriptors
+        palettes = {
+            "Spring": {
+                "office": ["#C28E75", "#D6C5A8", "#477876"],
+                "party": ["#FF7F50", "#FFD700", "#008080"],
+                "casual": ["#E9967A", "#F5F5DC", "#20B2AA"],
+                "explanation_undertone": "warm golden/peach",
+                "season_descr": "Your skin radiates soft, golden warmth. Pastel oranges, bright cream, and warm teals will look exceptionally luminous on you."
+            },
+            "Summer": {
+                "office": ["#B08B9E", "#708090", "#6A7B83"],
+                "party": ["#DA8A9F", "#9370DB", "#4682B4"],
+                "casual": ["#FFB6C1", "#E6E6FA", "#778899"],
+                "explanation_undertone": "cool rosy/pink",
+                "season_descr": "Your skin features soft, rosy undertones. Dusty rose pinks, soft lavenders, and cool slate grays will enhance your elegant, cool contrast."
+            },
+            "Autumn": {
+                "office": ["#8A5E38", "#556B2F", "#C2A67D"],
+                "party": ["#E05A47", "#B8860B", "#2E8B57"],
+                "casual": ["#D2691E", "#8FBC8F", "#F5F5DC"],
+                "explanation_undertone": "warm bronze/honey",
+                "season_descr": "You have rich golden undertones and deep features. Terracotta, mustard gold, and earthy olive greens complement your natural warmth perfectly."
+            },
+            "Winter": {
+                "office": ["#1F3A60", "#0E5033", "#4A4A4A"],
+                "party": ["#4169E1", "#00A86B", "#C71585"],
+                "casual": ["#4682B4", "#2E8B57", "#E0115F"],
+                "explanation_undertone": "cool high-contrast",
+                "season_descr": "Your skin has a striking cool undertone. Bold, saturated colors like royal blue, emerald green, and vivid ruby red will make you stand out beautifully."
+            }
+        }
+
+        # Lightness description (OpenCV maps L* from 0-100 to 0-255)
+        if l_val > 190:
+            lightness_descr = "fair porcelain"
+        elif l_val > 140:
+            lightness_descr = "light"
+        elif l_val > 95:
+            lightness_descr = "medium/tan"
         else:
-            tone = "Neutral"
-        
-        category = f"{tone}_{depth}"
-        if category not in COLOR_MATRIX["skin_categories"]:
-            category = "Neutral_Light"
+            lightness_descr = "deep/rich"
 
-        palette = COLOR_MATRIX["skin_categories"][category]
+        # Generate explainable AI description
+        undertone = palettes[detected_season]["explanation_undertone"]
+        season_descr = palettes[detected_season]["season_descr"]
+        explanation = f"We detected {undertone} undertones and a {lightness_descr} skin level. This places you in the {detected_season} seasonal color family. {season_descr}"
+
+        # Get occasion specific styling colors & message
+        selected_palette = palettes[detected_season][occasion]
+        primary_color = selected_palette[0]
+        secondary_color = selected_palette[1]
+        accent_color = selected_palette[2]
+
         if occasion == "office":
-            recommended = palette["office_filter"]
+            msg = f"👔 {detected_season} Office Style: Muted, professional tones that project polished confidence."
         elif occasion == "party":
-            recommended = palette["party_filter"]
+            msg = f"🎉 {detected_season} Party Look: Vibrant, high-contrast palette styled to command attention."
         else:
-            recommended = palette["harmonious_palette"]
-        
-        while len(recommended) < 3:
-            recommended.append("#CCCCCC")
-        
+            msg = f"☀️ {detected_season} Casual: Relaxed, natural shades curated for everyday harmony."
+
         return {
-            "detected_category": f"Static: {category}",
-            "primary_color": recommended[0],
-            "secondary_color": recommended[1],
-            "accent_color": recommended[2],
-            "message": f"✨ Static fallback for {occasion}."
+            "detected_category": f"{detected_season} Season",
+            "primary_color": primary_color,
+            "secondary_color": secondary_color,
+            "accent_color": accent_color,
+            "confidence": confidence,
+            "explanation": explanation,
+            "message": msg
+        }
+
+    except Exception as e:
+        print(f"Critical Error: {e}")
+        return {
+            "detected_category": "Unknown Season",
+            "primary_color": "#6C63FF",
+            "secondary_color": "#FF6584",
+            "accent_color": "#FFC857",
+            "confidence": 50,
+            "explanation": f"Oops! We encountered an error during color analysis: {e}. Using a default balanced palette.",
+            "message": "Styling engine running in safe mode."
         }
 
     except Exception as e:

@@ -203,36 +203,8 @@ class _ResultScreenState extends State<ResultScreen> {
 
   String _buildSpeechMessage() {
     final rec = _recommendation!;
-    final tip = _getStylingTip(widget.occasion, rec.primaryColor);
-    return 'Your skin tone is ${rec.detectedCategory}. '
-        'Your primary color is ${_colorName(rec.primaryColor)}. '
-        'Tip: $tip';
-  }
-
-  String _colorName(String hex) {
-    final nameMap = {
-      '#000000': 'black',
-      '#FFFFFF': 'white',
-      '#FF0000': 'red',
-      '#0000FF': 'blue',
-      '#008000': 'green',
-      '#FFFF00': 'yellow',
-      '#800080': 'purple',
-      '#FFA500': 'orange',
-      '#FFC0CB': 'pink',
-      '#A52A2A': 'brown',
-      '#808080': 'gray',
-      '#00FFFF': 'cyan',
-      '#FF00FF': 'magenta',
-      '#C0C0C0': 'silver',
-      '#800000': 'maroon',
-      '#808000': 'olive',
-      '#000080': 'navy',
-      '#00FF00': 'lime',
-      '#FF4500': 'orange red',
-      '#DA70D6': 'orchid',
-    };
-    return nameMap[hex.toUpperCase()] ?? hex;
+    return 'Analysis complete. ${rec.explanation} '
+        'For ${widget.occasion}, we recommend ${rec.detectedCategory} styling.';
   }
 
   @override
@@ -353,20 +325,59 @@ class _ResultScreenState extends State<ResultScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Category Badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.deepPurple.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              'Detected: ${rec.detectedCategory}',
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.deepPurple,
+          // Row with Category Badge & Confidence Indicator
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Category Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'Detected: ${rec.detectedCategory}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.deepPurple,
+                  ),
+                ),
               ),
-            ),
+              // Match Confidence Circular Gauge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.green.withOpacity(0.2)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        value: rec.confidence / 100.0,
+                        strokeWidth: 3,
+                        color: Colors.green,
+                        backgroundColor: Colors.green.withOpacity(0.2),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${rec.confidence}% Match',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
 
@@ -380,7 +391,49 @@ class _ResultScreenState extends State<ResultScreen> {
             rec.message,
             style: const TextStyle(fontSize: 16, color: Colors.black54),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+
+          // Stylist Analysis (Explainable AI)
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: Colors.deepPurple.withOpacity(0.15)),
+            ),
+            color: Colors.deepPurple.withOpacity(0.02),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.auto_awesome, color: Colors.deepPurple, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'AI Color Analysis',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepPurple,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    rec.explanation,
+                    style: const TextStyle(
+                      fontSize: 14.5,
+                      height: 1.5,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 28),
 
           // Color Swatches
           const Text(
@@ -398,7 +451,7 @@ class _ResultScreenState extends State<ResultScreen> {
             ],
           ),
 
-          const SizedBox(height: 40),
+          const SizedBox(height: 36),
 
           // Styling Tips (Mock)
           Card(

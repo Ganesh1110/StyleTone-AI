@@ -8,9 +8,8 @@ import 'package:path/path.dart' as p;
 class ApiService {
   // CHANGE THIS TO YOUR DEPLOYED PYTHON BACKEND URL
   static const String baseUrl =
-      'https://style-tone-ai.vercel.app'; // Android Emulator localhost
+      'http://10.0.2.2:8000'; // Local backend for Android Emulator
   // static const String baseUrl = 'http://localhost:8000'; // iOS Simulator localhost
-  // static const String baseUrl = 'https://your-render-app.onrender.com'; // Production
 
   final Dio _dio = Dio(
     BaseOptions(
