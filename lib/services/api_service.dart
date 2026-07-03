@@ -53,7 +53,13 @@ class ApiService {
         throw Exception('Server error: ${response.statusCode}');
       }
     } on DioException catch (e) {
-      throw Exception('Network error: ${e.message}');
+      if (e.type == DioExceptionType.badResponse && e.response?.data != null) {
+        final detail = e.response!.data is Map
+            ? (e.response!.data['detail'] ?? 'Server error (${e.response!.statusCode})')
+            : 'Server error (${e.response!.statusCode})';
+        throw Exception(detail);
+      }
+      throw Exception('Network error. Please check your connection and try again.');
     } catch (e) {
       throw Exception('Unexpected error: $e');
     }
@@ -84,7 +90,13 @@ class ApiService {
         throw Exception('Server error: ${response.statusCode}');
       }
     } on DioException catch (e) {
-      throw Exception('Network error: ${e.message}');
+      if (e.type == DioExceptionType.badResponse && e.response?.data != null) {
+        final detail = e.response!.data is Map
+            ? (e.response!.data['detail'] ?? 'Server error (${e.response!.statusCode})')
+            : 'Server error (${e.response!.statusCode})';
+        throw Exception(detail);
+      }
+      throw Exception('Network error. Please check your connection and try again.');
     } catch (e) {
       throw Exception('Unexpected error: $e');
     }
