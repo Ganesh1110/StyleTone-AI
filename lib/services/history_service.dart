@@ -122,4 +122,21 @@ class HistoryService {
       debugPrint('Error deleting history item: $e');
     }
   }
+
+  // Clear all history items
+  Future<void> clearAll() async {
+    try {
+      // Delete all stored history images
+      final docDir = await getApplicationDocumentsDirectory();
+      final historyDir = Directory(p.join(docDir.path, 'history_images'));
+      if (await historyDir.exists()) {
+        await historyDir.delete(recursive: true);
+      }
+
+      // Clear the database
+      await DatabaseHelper.instance.clearHistory();
+    } catch (e) {
+      debugPrint('Error clearing history: $e');
+    }
+  }
 }
