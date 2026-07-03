@@ -213,31 +213,21 @@ class StyleToneLogo extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(size * 0.22),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF8A2387), Color(0xFFE94057), Color(0xFFF27121)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFE94057).withOpacity(0.35),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Center(
-        child: Icon(
-          Icons.checkroom_rounded,
-          size: size * 0.55,
-          color: Colors.white,
-          shadows: [
-            Shadow(
-              color: Colors.black.withOpacity(0.2),
-              offset: const Offset(0, 2),
-              blurRadius: 4,
-            ),
-          ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(size * 0.22),
+        child: Image.asset(
+          'assets/images/logo.png',
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
         ),
       ),
     );
