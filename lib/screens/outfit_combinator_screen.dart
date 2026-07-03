@@ -130,7 +130,10 @@ class _OutfitCombinatorScreenState extends State<OutfitCombinatorScreen> with Si
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
           tabs: const [
             Tab(text: 'Office Wear'),
             Tab(text: 'Party Night'),

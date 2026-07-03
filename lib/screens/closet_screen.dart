@@ -15,7 +15,8 @@ class ClosetScreen extends StatefulWidget {
   State<ClosetScreen> createState() => _ClosetScreenState();
 }
 
-class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderStateMixin {
+class _ClosetScreenState extends State<ClosetScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final ApiService _apiService = ApiService();
   bool _isLoading = false;
@@ -87,12 +88,18 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
         child: Wrap(
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt_rounded, color: Colors.deepPurple),
+              leading: const Icon(
+                Icons.camera_alt_rounded,
+                color: Colors.deepPurple,
+              ),
               title: const Text('Take Photo'),
               onTap: () => Navigator.pop(context, ImageSource.camera),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_rounded, color: Colors.deepPurple),
+              leading: const Icon(
+                Icons.photo_library_rounded,
+                color: Colors.deepPurple,
+              ),
               title: const Text('Choose from Gallery'),
               onTap: () => Navigator.pop(context, ImageSource.gallery),
             ),
@@ -111,8 +118,11 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
 
     // Save locally to persistent app directories
     final appDir = await getApplicationDocumentsDirectory();
-    final String fileExtension = p.extension(imageFile.path).isEmpty ? '.jpg' : p.extension(imageFile.path);
-    final String uniqueFileName = 'closet_${DateTime.now().millisecondsSinceEpoch}$fileExtension';
+    final String fileExtension = p.extension(imageFile.path).isEmpty
+        ? '.jpg'
+        : p.extension(imageFile.path);
+    final String uniqueFileName =
+        'closet_${DateTime.now().millisecondsSinceEpoch}$fileExtension';
     final String localSavedPath = p.join(appDir.path, uniqueFileName);
     final File savedFile = await imageFile.copy(localSavedPath);
 
@@ -131,7 +141,10 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
               children: [
                 CircularProgressIndicator(color: Colors.deepPurple),
                 SizedBox(height: 16),
-                Text('Analyzing clothing color...', style: TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  'Analyzing clothing color...',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
               ],
             ),
           ),
@@ -140,8 +153,10 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
     );
 
     try {
-      final analysis = await _apiService.analyzeClothingColor(imageFile: savedFile);
-      
+      final analysis = await _apiService.analyzeClothingColor(
+        imageFile: savedFile,
+      );
+
       // Close analysis loader dialog
       if (mounted) Navigator.pop(context);
 
@@ -155,14 +170,19 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
     } catch (e) {
       if (mounted) Navigator.pop(context); // Close loader
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Color analysis failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Color analysis failed: $e')));
       }
     }
   }
 
-  void _showSaveGarmentDialog(File file, String localPath, String hexColor, String colorName) {
+  void _showSaveGarmentDialog(
+    File file,
+    String localPath,
+    String hexColor,
+    String colorName,
+  ) {
     String selectedCategory = 'top';
     final parsedColor = Color(int.parse(hexColor.replaceFirst('#', '0xFF')));
 
@@ -188,7 +208,11 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
                 children: [
                   const Text(
                     'Save New Garment',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   Row(
@@ -208,7 +232,14 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Detected Color:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54)),
+                            const Text(
+                              'Detected Color:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: Colors.black54,
+                              ),
+                            ),
                             const SizedBox(height: 8),
                             Row(
                               children: [
@@ -218,28 +249,46 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
                                   decoration: BoxDecoration(
                                     color: parsedColor,
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.grey.shade300),
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text(colorName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                                      Text(hexColor.toUpperCase(), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                      Text(
+                                        colorName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                      Text(
+                                        hexColor.toUpperCase(),
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
                                     ],
                                   ),
-                                )
+                                ),
                               ],
-                            )
+                            ),
                           ],
                         ),
-                      )
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
-                  const Text('Select Category:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  const Text(
+                    'Select Category:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8.0,
@@ -250,8 +299,12 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
                         selected: isSelected,
                         selectedColor: Colors.deepPurple.withOpacity(0.15),
                         labelStyle: TextStyle(
-                          color: isSelected ? Colors.deepPurple : Colors.black87,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected
+                              ? Colors.deepPurple
+                              : Colors.black87,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                         onSelected: (bool selected) {
                           if (selected) {
@@ -279,11 +332,17 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
 
                         await DatabaseHelper.instance.insertClosetItem(newItem);
                         if (!context.mounted) return;
-                        Navigator.pop(context); // Close save dialog bottom sheet
-                        _loadClosetItems();     // Refresh items list
-                        
+                        Navigator.pop(
+                          context,
+                        ); // Close save dialog bottom sheet
+                        _loadClosetItems(); // Refresh items list
+
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Successfully added $colorName garment to closet!')),
+                          SnackBar(
+                            content: Text(
+                              'Successfully added $colorName garment to closet!',
+                            ),
+                          ),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -292,9 +351,16 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
                           borderRadius: BorderRadius.circular(25),
                         ),
                       ),
-                      child: const Text('Add to Closet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                      child: const Text(
+                        'Add to Closet',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
-                  )
+                  ),
                 ],
               ),
             );
@@ -309,7 +375,9 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Garment'),
-        content: const Text('Are you sure you want to remove this garment from your closet?'),
+        content: const Text(
+          'Are you sure you want to remove this garment from your closet?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -325,7 +393,7 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
 
     if (confirm == true) {
       await DatabaseHelper.instance.deleteClosetItem(item.id);
-      
+
       // Delete local file to save storage
       final file = File(item.imagePath);
       if (await file.exists()) {
@@ -346,13 +414,21 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          padding: EdgeInsets.zero,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 16.0),
           indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
           tabs: _categories.map((cat) => Tab(text: cat['label'])).toList(),
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.deepPurple))
+          ? const Center(
+              child: CircularProgressIndicator(color: Colors.deepPurple),
+            )
           : TabBarView(
               controller: _tabController,
               children: _categories.map((cat) {
@@ -364,7 +440,10 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
         onPressed: _addGarment,
         backgroundColor: Colors.deepPurple,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Add Garment', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const Text(
+          'Add Garment',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
@@ -379,7 +458,11 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
             const SizedBox(height: 16),
             Text(
               'No items in $categoryLabel yet',
-              style: TextStyle(color: Colors.grey[600], fontSize: 16, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -419,10 +502,7 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.file(
-                      file,
-                      fit: BoxFit.cover,
-                    ),
+                    Image.file(file, fit: BoxFit.cover),
                     Positioned(
                       top: 8,
                       right: 8,
@@ -434,7 +514,11 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
                             color: Colors.white,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 18),
+                          child: const Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.red,
+                            size: 18,
+                          ),
                         ),
                       ),
                     ),
@@ -450,7 +534,10 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
                       item.colorName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13.5,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Row(
@@ -461,13 +548,20 @@ class _ClosetScreenState extends State<ClosetScreen> with SingleTickerProviderSt
                           decoration: BoxDecoration(
                             color: color,
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.grey.shade300, width: 0.5),
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 0.5,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 6),
                         Text(
                           item.hexColor.toUpperCase(),
-                          style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
