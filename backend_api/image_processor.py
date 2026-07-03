@@ -49,15 +49,24 @@ def _get_cascade_path():
 
 
 def _detect_face(img):
-    """Detect the largest face and return a cropped region expanded by 30%."""
+    """Detect the largest face and return a cropped region expanded by 30%.
+    Falls back to returning the full image if face detection is unavailable."""
     cascade_path = _get_cascade_path()
     if not os.path.exists(cascade_path):
-        logger.error("Haar cascade file not found at: %s", cascade_path)
-        raise RuntimeError("Face detection model not found on server.")
-    face_cascade = cv2.CascadeClassifier(cascade_path)
-    if face_cascade.empty():
-        logger.error("Failed to load Haar cascade from: %s", cascade_path)
-        raise RuntimeError("Failed to load face detection model.")
+        logger.warning("Haar cascade file not found at %s; using full image", cascade_path)
+        return img
+    try:
+        face_cascade = cv2.CascadeClassifier(cascade_path)
+        if face_cascade.empty():
+            logger.warning("Failed to load Haar cascade; using full image")
+            return img
+    except AttributeError:
+        logger.warning("CascadeClassifier not available in this OpenCV build; using full image")
+        return img
+    except Exception as ex:
+        logger.warning("Face detection init failed (%s); using full image", ex)
+        return img
+
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(gray, 1.1, 5, minSize=(80, 80))
     if len(faces) == 0:
