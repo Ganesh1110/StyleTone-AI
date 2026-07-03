@@ -12,7 +12,10 @@ import 'package:share_plus/share_plus.dart';
 import '../services/api_service.dart';
 import '../services/tts_service.dart';
 import '../services/history_service.dart';
+import '../services/profile_service.dart';
 import '../models/color_recommendation.dart';
+import '../widgets/glass_card.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class ResultScreen extends StatefulWidget {
   final File imageFile;
@@ -64,7 +67,7 @@ class _ResultScreenState extends State<ResultScreen> {
       _rating = widget.preloadedRating ?? 0;
       _isLoading = false;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _speakRecommendation();
+        _speakRecommendation(auto: true);
       });
     } else {
       _startLoadingTimer();
@@ -132,7 +135,7 @@ class _ResultScreenState extends State<ResultScreen> {
       final historyService = HistoryService();
       _historyId = await historyService.saveItem(widget.imageFile, widget.occasion, recommendation);
 
-      _speakRecommendation();
+      _speakRecommendation(auto: true);
     } catch (e) {
       _loadingTimer?.cancel();
       setState(() {
@@ -168,8 +171,13 @@ class _ResultScreenState extends State<ResultScreen> {
     }
   }
 
-  Future<void> _speakRecommendation() async {
+  Future<void> _speakRecommendation({bool auto = false}) async {
     if (_recommendation == null) return;
+
+    if (auto) {
+      final profile = await ProfileService().getProfile();
+      if (profile.muteVoiceOutput) return;
+    }
 
     if (_tts.isInitialized) {
       final message = _buildSpeechMessage();
@@ -341,10 +349,10 @@ class _ResultScreenState extends State<ResultScreen> {
                 children: [
                   Text(
                     '$label Color Details',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded),
+                    icon: const Icon(Icons.close_rounded, color: Colors.white),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -358,7 +366,7 @@ class _ResultScreenState extends State<ResultScreen> {
                     decoration: BoxDecoration(
                       color: color,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(color: Colors.white24),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.05),
@@ -374,12 +382,12 @@ class _ResultScreenState extends State<ResultScreen> {
                     children: [
                       Text(
                         'HEX: ${hexCode.toUpperCase()}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         'RGB: ($r, $g, $b)',
-                        style: const TextStyle(color: Colors.black54, fontSize: 14),
+                        style: const TextStyle(color: Colors.white70, fontSize: 14),
                       ),
                     ],
                   ),
@@ -388,12 +396,12 @@ class _ResultScreenState extends State<ResultScreen> {
               const SizedBox(height: 24),
               const Text(
                 'How to Style This Shade:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.deepPurple),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
               ),
               const SizedBox(height: 8),
               Text(
                 _getStylingTip(occasion, label.toLowerCase()),
-                style: const TextStyle(fontSize: 14.5, color: Colors.black87, height: 1.4),
+                style: const TextStyle(fontSize: 14.5, color: Colors.white70, height: 1.4),
               ),
               const SizedBox(height: 24),
             ],
@@ -472,14 +480,14 @@ class _ResultScreenState extends State<ResultScreen> {
             child: Text(
               _loadingSteps[_currentStepIndex],
               key: ValueKey<int>(_currentStepIndex),
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.deepPurple),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary),
               textAlign: TextAlign.center,
             ),
           ),
           const SizedBox(height: 12),
           const Text(
             'Please wait, this takes ~5 seconds',
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: Colors.white60),
           ),
         ],
       ),
@@ -529,16 +537,16 @@ class _ResultScreenState extends State<ResultScreen> {
           Container(
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: Colors.white.withOpacity(0.05),
               borderRadius: BorderRadius.circular(20),
             ),
             child: TabBar(
               indicator: BoxDecoration(
-                color: Colors.deepPurple,
+                color: Theme.of(context).colorScheme.secondary,
                 borderRadius: BorderRadius.circular(20),
               ),
               labelColor: Colors.white,
-              unselectedLabelColor: Colors.black54,
+              unselectedLabelColor: Colors.white54,
               labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               tabs: const [
                 Tab(text: 'Office'),
@@ -571,14 +579,15 @@ class _ResultScreenState extends State<ResultScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: Colors.deepPurple.withOpacity(0.08),
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
           ),
           child: Text(
             'Detected: ${rec.detectedCategory}',
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.deepPurple,
+              color: Theme.of(context).colorScheme.primary,
               fontSize: 13,
             ),
           ),
@@ -627,33 +636,26 @@ class _ResultScreenState extends State<ResultScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Styling Tips Card
-          Card(
+          GlassCard(
             margin: EdgeInsets.zero,
-            elevation: 0,
-            color: Colors.grey.shade50,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: Colors.grey.shade100),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                palette.message,
-                style: const TextStyle(
-                  fontSize: 15,
-                  height: 1.4,
-                  color: Colors.black87,
-                  fontWeight: FontWeight.w400,
-                ),
+            color: Colors.white.withOpacity(0.05),
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              palette.message,
+              style: const TextStyle(
+                fontSize: 15,
+                height: 1.4,
+                color: Colors.white,
+                fontWeight: FontWeight.w400,
               ),
             ),
-          ),
+          ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0, duration: 400.ms),
           const SizedBox(height: 24),
 
           // Palette Header
           const Text(
             'Recommended Swatches (Tap to style)',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black54),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white60),
           ),
           const SizedBox(height: 16),
 
@@ -671,99 +673,92 @@ class _ResultScreenState extends State<ResultScreen> {
           // Explainable AI Card wrapped in sharing boundary
           RepaintBoundary(
             key: _getShareKey(occasionKey),
-            child: Card(
+            child: GlassCard(
               margin: EdgeInsets.zero,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: Colors.deepPurple.withOpacity(0.15)),
-              ),
-              color: Colors.deepPurple.withOpacity(0.01),
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.auto_awesome, color: Colors.deepPurple, size: 20),
-                            SizedBox(width: 8),
-                            Text(
-                              'AI Color Analysis',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.deepPurple,
-                              ),
+              color: Colors.white.withOpacity(0.05),
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'AI Color Analysis',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
-                          ],
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.share_rounded, color: Colors.deepPurple, size: 20),
-                          onPressed: () => _sharePalette(rec, occasionKey),
-                          tooltip: 'Share styling card',
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      rec.explanation,
-                      style: const TextStyle(
-                        fontSize: 14.5,
-                        height: 1.5,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const Divider(height: 32),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Was this analysis accurate?',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black54,
                           ),
-                        ),
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                _rating == 1
-                                    ? Icons.thumb_up_rounded
-                                    : Icons.thumb_up_outlined,
-                                color: _rating == 1 ? Colors.green : Colors.grey,
-                                size: 20,
-                              ),
-                              onPressed: _historyId == null
-                                  ? null
-                                  : () => _updateRating(1),
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                _rating == -1
-                                    ? Icons.thumb_down_rounded
-                                    : Icons.thumb_down_outlined,
-                                color: _rating == -1 ? Colors.red : Colors.grey,
-                                size: 20,
-                              ),
-                              onPressed: _historyId == null
-                                  ? null
-                                  : () => _updateRating(-1),
-                            ),
-                          ],
-                        ),
-                      ],
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.share_rounded, color: Colors.white, size: 20),
+                        onPressed: () => _sharePalette(rec, occasionKey),
+                        tooltip: 'Share styling card',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    rec.explanation,
+                    style: const TextStyle(
+                      fontSize: 14.5,
+                      height: 1.5,
+                      color: Colors.white70,
                     ),
-                  ],
-                ),
+                  ),
+                  const Divider(height: 32, color: Colors.white24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Was this analysis accurate?',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white60,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              _rating == 1
+                                  ? Icons.thumb_up_rounded
+                                  : Icons.thumb_up_outlined,
+                              color: _rating == 1 ? Colors.green : Colors.grey,
+                              size: 20,
+                            ),
+                            onPressed: _historyId == null
+                                ? null
+                                : () => _updateRating(1),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              _rating == -1
+                                  ? Icons.thumb_down_rounded
+                                  : Icons.thumb_down_outlined,
+                              color: _rating == -1 ? Colors.red : Colors.grey,
+                              size: 20,
+                            ),
+                            onPressed: _historyId == null
+                                ? null
+                                : () => _updateRating(-1),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ),
+          ).animate().fadeIn(duration: 500.ms, delay: 200.ms).slideY(begin: 0.1, end: 0, duration: 400.ms),
           const SizedBox(height: 24),
         ],
       ),

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'home_screen.dart';
+import '../widgets/glass_card.dart';
+import '../theme/app_theme.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -25,6 +28,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       gradient: const [Color(0xFF8A2387), Color(0xFFE94057)],
     ),
     OnboardingData(
+      title: 'Lighting Calibration',
+      description:
+          'For the best results, stand facing a window with natural daylight. Avoid warm indoor bulbs or harsh shadows.',
+      icon: Icons.wb_sunny_rounded,
+      gradient: const [Color(0xFFF6D365), Color(0xFFFDA085)],
+    ),
+    OnboardingData(
       title: 'Personalized Palettes',
       description:
           'Receive custom-curated color recommendations tailored specifically to your skin category for office, party, or casual wear.',
@@ -35,7 +45,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       title: 'Voice Assistant & Privacy',
       description:
           'Listen to your stylist tips read aloud. All processing is done locally on your device, ensuring complete privacy.',
-      icon: Icons.record_voice_over_rounded,
+      icon: Icons.shield_rounded,
       gradient: const [Color(0xFFF27121), Color(0xFF8A2387)],
     ),
   ];
@@ -47,8 +57,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => HomeScreen(cameras: widget.cameras),
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 500),
+          pageBuilder: (_, __, ___) => HomeScreen(cameras: widget.cameras),
+          transitionsBuilder: (_, animation, __, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
         ),
       );
     }
@@ -64,7 +78,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           // Background Color/Gradient
           Positioned.fill(
             child: Container(
-              color: theme.scaffoldBackgroundColor,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppTheme.background, Color(0xFF2A2A35)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
             ),
           ),
 
@@ -98,8 +118,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         boxShadow: [
                           BoxShadow(
                             color: page.gradient[0].withOpacity(0.3),
-                            blurRadius: 24,
-                            offset: const Offset(0, 12),
+                            blurRadius: 30,
+                            offset: const Offset(0, 15),
                           ),
                         ],
                       ),
@@ -108,27 +128,33 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         size: 80,
                         color: Colors.white,
                       ),
-                    ),
-                    const SizedBox(height: 48),
-                    // Title
-                    Text(
-                      page.title,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.onSurface,
+                    ).animate().scale(delay: 200.ms, duration: 500.ms, curve: Curves.easeOutBack).fadeIn(),
+                    
+                    const SizedBox(height: 64),
+                    
+                    // Glass Card for Content
+                    GlassCard(
+                      child: Column(
+                        children: [
+                          Text(
+                            page.title,
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              color: Colors.white,
+                            ),
+                            textAlign: TextAlign.center,
+                          ).animate().slideY(begin: 0.5, end: 0, duration: 400.ms).fadeIn(),
+                          const SizedBox(height: 16),
+                          Text(
+                            page.description,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              color: Colors.white70,
+                              height: 1.5,
+                            ),
+                            textAlign: TextAlign.center,
+                          ).animate().slideY(begin: 0.5, end: 0, duration: 500.ms, delay: 100.ms).fadeIn(),
+                        ],
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    // Description
-                    Text(
-                      page.description,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        height: 1.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+                    ).animate().fadeIn(duration: 600.ms),
                   ],
                 ),
               );
@@ -155,8 +181,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(4.0),
                         color: _currentPage == index
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.primary.withOpacity(0.2),
+                            ? AppTheme.secondary
+                            : Colors.white24,
                       ),
                     ),
                   ),
@@ -173,7 +199,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         child: Text(
                           'Skip',
                           style: TextStyle(
-                            color: theme.colorScheme.onSurfaceVariant,
+                            color: Colors.white60,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -194,8 +220,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.colorScheme.primary,
-                        foregroundColor: theme.colorScheme.onPrimary,
+                        backgroundColor: AppTheme.secondary,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 32,
                           vertical: 16,
@@ -203,7 +229,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
-                        elevation: 2,
+                        elevation: 10,
+                        shadowColor: AppTheme.secondary.withOpacity(0.5),
                       ),
                       child: Text(
                         _currentPage == _pages.length - 1
@@ -214,7 +241,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
+                    ).animate(target: _currentPage == _pages.length - 1 ? 1 : 0)
+                     .shimmer(duration: 1.seconds, color: Colors.white30),
                   ],
                 ),
               ],

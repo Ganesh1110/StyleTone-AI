@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import '../models/history_item.dart';
 import '../services/database_helper.dart';
+import '../widgets/glass_card.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class LiveMatcherScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -380,137 +382,132 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
                   left: 20,
                   right: 20,
                   bottom: 24,
-                  child: Card(
-                    elevation: 8,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    color: Colors.white.withOpacity(0.96),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Custom season fallback selector if no history exists
-                          if (_latestScan == null) ...[
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text('Verify Season:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: Colors.black54)),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade200,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: DropdownButton<String>(
-                                    value: _selectedSeason,
-                                    underline: const SizedBox(),
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple, fontSize: 13),
-                                    onChanged: (String? newValue) {
-                                      if (newValue != null) {
-                                        setState(() {
-                                          _selectedSeason = newValue;
-                                        });
-                                      }
-                                    },
-                                    items: _seasonsList.map((String season) {
-                                      return DropdownMenuItem<String>(
-                                        value: season,
-                                        child: Text(season),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const Divider(height: 24),
-                          ] else ...[
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Profile Season: ${_latestScan!.recommendation.detectedCategory}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: Colors.deepPurple),
-                                ),
-                                const Icon(Icons.verified_user_rounded, color: Colors.deepPurple, size: 18),
-                              ],
-                            ),
-                            const Divider(height: 20),
-                          ],
-
-                          // Live and Match Indicators
+                  child: GlassCard(
+                    color: Colors.white.withOpacity(0.05),
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Custom season fallback selector if no history exists
+                        if (_latestScan == null) ...[
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              // Live Circle Color Box
+                              const Text('Verify Season:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: Colors.white70)),
                               Container(
-                                width: 50,
-                                height: 50,
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
                                 decoration: BoxDecoration(
-                                  color: liveColor,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    )
-                                  ],
+                                  color: Colors.white10,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: DropdownButton<String>(
+                                  value: _selectedSeason,
+                                  underline: const SizedBox(),
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary, fontSize: 13),
+                                  dropdownColor: Theme.of(context).colorScheme.surface,
+                                  onChanged: (String? newValue) {
+                                    if (newValue != null) {
+                                      setState(() {
+                                        _selectedSeason = newValue;
+                                      });
+                                    }
+                                  },
+                                  items: _seasonsList.map((String season) {
+                                    return DropdownMenuItem<String>(
+                                      value: season,
+                                      child: Text(season),
+                                    );
+                                  }).toList(),
                                 ),
                               ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('Live Target Color', style: TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.bold)),
-                                    const SizedBox(height: 3),
-                                    Text(
-                                      _colorName,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                                    ),
-                                    Text(_hexColor.toUpperCase(), style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                                  ],
-                                ),
-                              ),
-
-                              // Match Score Badge
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: _getScoreColor(score).withOpacity(0.12),
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: Text(
-                                      '$score% Match',
-                                      style: TextStyle(
-                                        color: _getScoreColor(score),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    _getMatchAdvice(score),
-                                    style: TextStyle(
-                                      color: _getScoreColor(score),
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
-                              )
                             ],
                           ),
+                          const Divider(height: 24, color: Colors.white24),
+                        ] else ...[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Profile Season: ${_latestScan!.recommendation.detectedCategory}',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: Theme.of(context).colorScheme.primary),
+                              ),
+                              Icon(Icons.verified_user_rounded, color: Theme.of(context).colorScheme.primary, size: 18),
+                            ],
+                          ),
+                          const Divider(height: 20, color: Colors.white24),
                         ],
-                      ),
+
+                        // Live and Match Indicators
+                        Row(
+                          children: [
+                            // Live Circle Color Box
+                            Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: liveColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  )
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Live Target Color', style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    _colorName,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                                  ),
+                                  Text(_hexColor.toUpperCase(), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                ],
+                              ),
+                            ),
+
+                            // Match Score Badge
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: _getScoreColor(score).withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Text(
+                                    '$score% Match',
+                                    style: TextStyle(
+                                      color: _getScoreColor(score),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  _getMatchAdvice(score),
+                                  style: TextStyle(
+                                    color: _getScoreColor(score),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            )
+                          ],
+                        ),
+                      ],
                     ),
-                  ),
+                  ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0, duration: 400.ms),
                 ),
               ],
             ),

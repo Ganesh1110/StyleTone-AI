@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/closet_item.dart';
 import '../models/history_item.dart';
 import '../services/database_helper.dart';
+import '../widgets/glass_card.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class OutfitCombinatorScreen extends StatefulWidget {
   const OutfitCombinatorScreen({super.key});
@@ -240,53 +242,46 @@ class _OutfitCombinatorScreenState extends State<OutfitCombinatorScreen> with Si
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Season & Fit Summary Card
-          Card(
-            elevation: 0,
-            color: Colors.deepPurple.withOpacity(0.04),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: Colors.deepPurple.withOpacity(0.1)),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Detected: ${rec.detectedCategory}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.deepPurple),
-                      ),
-                      if (averageMatchScore > 0)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '$averageMatchScore% Closet Match',
-                            style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
-                          ),
+          GlassCard(
+            color: Colors.white.withOpacity(0.05),
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Detected: ${rec.detectedCategory}',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.primary),
+                    ),
+                    if (averageMatchScore > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    palette.message,
-                    style: const TextStyle(fontSize: 13.5, color: Colors.black87, height: 1.4),
-                  ),
-                ],
-              ),
+                        child: Text(
+                          '$averageMatchScore% Closet Match',
+                          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  palette.message,
+                  style: const TextStyle(fontSize: 13.5, color: Colors.white70, height: 1.4),
+                ),
+              ],
             ),
-          ),
+          ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0, duration: 400.ms),
           const SizedBox(height: 24),
 
           const Text(
             'Suggested Outfit Combinations',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white60),
           ),
           const SizedBox(height: 16),
 
@@ -334,126 +329,122 @@ class _OutfitCombinatorScreenState extends State<OutfitCombinatorScreen> with Si
   Widget _buildGarmentSlot(String roleLabel, ClosetItem? item, int? score, String targetColorHex) {
     final targetColor = Color(int.parse(targetColorHex.replaceFirst('#', '0xFF')));
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14.0),
-        child: Row(
-          children: [
-            // Item photo or placeholder
-            if (item != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.file(
-                  File(item.imagePath),
-                  width: 75,
-                  height: 75,
-                  fit: BoxFit.cover,
-                ),
-              )
-            else
-              Container(
+    return GlassCard(
+      color: Colors.white.withOpacity(0.05),
+      padding: const EdgeInsets.all(14.0),
+      child: Row(
+        children: [
+          // Item photo or placeholder
+          if (item != null)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.file(
+                File(item.imagePath),
                 width: 75,
                 height: 75,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.inventory_2_outlined, color: Colors.grey[400]),
-              ),
-            const SizedBox(width: 16),
-
-            // Item Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    roleLabel,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
-                  ),
-                  const SizedBox(height: 6),
-                  if (item != null) ...[
-                    Text(
-                      item.colorName,
-                      style: const TextStyle(fontSize: 13, color: Colors.black54),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Container(
-                          width: 14,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: Color(int.parse(item.hexColor.replaceFirst('#', '0xFF'))),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.grey.shade300, width: 0.5),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: _getScoreColor(score ?? 0).withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            '$score% Match',
-                            style: TextStyle(
-                              color: _getScoreColor(score ?? 0),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 10.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  ] else ...[
-                    Row(
-                      children: [
-                        const Text(
-                          'Target: ',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                        Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: targetColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.grey.shade300, width: 0.5),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          targetColorHex.toUpperCase(),
-                          style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.add_circle_outline_rounded, size: 14, color: Colors.orange.shade700),
-                        const SizedBox(width: 6),
-                        Text(
-                          'No garments registered. Tap closet to add.',
-                          style: TextStyle(fontSize: 12, color: Colors.orange.shade700, fontWeight: FontWeight.w500),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
+                fit: BoxFit.cover,
               ),
             )
-          ],
-        ),
+          else
+            Container(
+              width: 75,
+              height: 75,
+              decoration: BoxDecoration(
+                color: Colors.white10,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.inventory_2_outlined, color: Colors.white30),
+            ),
+          const SizedBox(width: 16),
+
+          // Item Details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  roleLabel,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                ),
+                const SizedBox(height: 6),
+                if (item != null) ...[
+                  Text(
+                    item.colorName,
+                    style: const TextStyle(fontSize: 13, color: Colors.white70),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: Color(int.parse(item.hexColor.replaceFirst('#', '0xFF'))),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white24, width: 0.5),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _getScoreColor(score ?? 0).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '$score% Match',
+                          style: TextStyle(
+                            color: _getScoreColor(score ?? 0),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                ] else ...[
+                  Row(
+                    children: [
+                      const Text(
+                        'Target: ',
+                        style: TextStyle(fontSize: 12, color: Colors.white54),
+                      ),
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: targetColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white24, width: 0.5),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        targetColorHex.toUpperCase(),
+                        style: const TextStyle(fontSize: 11, color: Colors.white54, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.add_circle_outline_rounded, size: 14, color: Colors.orange.shade400),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'No garments registered. Tap closet to add.',
+                          style: TextStyle(fontSize: 12, color: Colors.orange.shade400, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          )
+        ],
       ),
-    );
+    ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0, duration: 400.ms);
   }
 
   Color _getScoreColor(int score) {

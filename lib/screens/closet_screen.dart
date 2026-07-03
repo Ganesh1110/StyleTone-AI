@@ -7,6 +7,9 @@ import 'package:path/path.dart' as p;
 import '../models/closet_item.dart';
 import '../services/database_helper.dart';
 import '../services/api_service.dart';
+import '../widgets/glass_card.dart';
+import '../widgets/skeleton_loader.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class ClosetScreen extends StatefulWidget {
   const ClosetScreen({super.key});
@@ -131,20 +134,18 @@ class _ClosetScreenState extends State<ClosetScreen>
       context: context,
       barrierDismissible: false,
       builder: (context) => const Center(
-        child: Card(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(color: Colors.deepPurple),
-                SizedBox(height: 16),
-                Text(
-                  'Analyzing clothing color...',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
+        child: GlassCard(
+          padding: EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SkeletonCard(height: 60, width: 60),
+              SizedBox(height: 16),
+              Text(
+                'Analyzing clothing color...',
+                style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+              ),
+            ],
           ),
         ),
       ),
@@ -424,8 +425,16 @@ class _ClosetScreenState extends State<ClosetScreen>
         ),
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Colors.deepPurple),
+          ? GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.8,
+              ),
+              itemCount: 6,
+              itemBuilder: (context, index) => const SkeletonGridItem(),
             )
           : TabBarView(
               controller: _tabController,
@@ -486,13 +495,9 @@ class _ClosetScreenState extends State<ClosetScreen>
         final file = File(item.imagePath);
         final color = Color(int.parse(item.hexColor.replaceFirst('#', '0xFF')));
 
-        return Card(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.grey.shade200),
-          ),
-          clipBehavior: Clip.antiAlias,
+        return GlassCard(
+          color: Colors.white.withOpacity(0.05),
+          padding: EdgeInsets.zero,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -500,7 +505,10 @@ class _ClosetScreenState extends State<ClosetScreen>
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.file(file, fit: BoxFit.cover),
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                      child: Image.file(file, fit: BoxFit.cover),
+                    ),
                     Positioned(
                       top: 8,
                       right: 8,
@@ -535,6 +543,7 @@ class _ClosetScreenState extends State<ClosetScreen>
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13.5,
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -557,7 +566,7 @@ class _ClosetScreenState extends State<ClosetScreen>
                           item.hexColor.toUpperCase(),
                           style: const TextStyle(
                             fontSize: 11,
-                            color: Colors.grey,
+                            color: Colors.white70,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -568,7 +577,7 @@ class _ClosetScreenState extends State<ClosetScreen>
               ),
             ],
           ),
-        );
+        ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0, duration: 400.ms);
       },
     );
   }

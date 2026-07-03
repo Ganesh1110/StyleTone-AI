@@ -9,6 +9,8 @@ import 'profile_screen.dart';
 import 'closet_screen.dart';
 import 'outfit_combinator_screen.dart';
 import 'live_matcher_screen.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../widgets/glass_card.dart';
 
 class HomeScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -198,53 +200,51 @@ class _OptionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: color.withAlpha(77)),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withAlpha(26),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, size: 32, color: color),
+    return GestureDetector(
+      onTap: onTap,
+      child: GlassCard(
+        color: color.withOpacity(0.05),
+        border: Border.all(color: color.withOpacity(0.2)),
+        padding: const EdgeInsets.all(24.0),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+              child: Icon(icon, size: 32, color: color),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.white70,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              Icon(Icons.chevron_right, color: color),
-            ],
-          ),
+            ),
+            Icon(Icons.chevron_right, color: color),
+          ],
         ),
-      ),
+      ).animate().scale(
+            curve: Curves.easeOutBack,
+            duration: 400.ms,
+          ),
     );
   }
 }

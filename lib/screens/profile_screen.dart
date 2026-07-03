@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/user_profile.dart';
 import '../services/profile_service.dart';
+import '../widgets/glass_card.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,6 +18,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _gender = 'neutral';
   int _age = 30;
   String _preferredStyle = 'classic';
+  bool _muteVoiceOutput = false;
 
   @override
   void initState() {
@@ -29,6 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _gender = profile.gender;
       _age = profile.age;
       _preferredStyle = profile.preferredStyle;
+      _muteVoiceOutput = profile.muteVoiceOutput;
       _isLoading = false;
     });
   }
@@ -38,6 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       gender: _gender,
       age: _age,
       preferredStyle: _preferredStyle,
+      muteVoiceOutput: _muteVoiceOutput,
     );
     await _profileService.saveProfile(updatedProfile);
 
@@ -75,114 +80,129 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     'Customize Your Stylist',
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Colors.deepPurple,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
                     'Configure your profile details below to receive personalized outfit suggestions and styling advice.',
-                    style: TextStyle(color: Colors.black54, height: 1.4),
+                    style: TextStyle(color: Colors.white70, height: 1.4),
                   ),
                   const SizedBox(height: 32),
 
                   // Gender Selection Card
                   _buildSectionTitle('GENDER'),
                   const SizedBox(height: 8),
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: Colors.grey.shade200),
+                  GlassCard(
+                    color: Colors.white.withOpacity(0.05),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12.0,
+                      horizontal: 16.0,
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12.0,
-                        horizontal: 16.0,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildGenderChip('male', Icons.male_rounded, 'Male'),
-                          _buildGenderChip(
-                            'female',
-                            Icons.female_rounded,
-                            'Female',
-                          ),
-                          _buildGenderChip(
-                            'neutral',
-                            Icons.person_rounded,
-                            'Neutral',
-                          ),
-                        ],
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildGenderChip('male', Icons.male_rounded, 'Male'),
+                        _buildGenderChip(
+                          'female',
+                          Icons.female_rounded,
+                          'Female',
+                        ),
+                        _buildGenderChip(
+                          'neutral',
+                          Icons.person_rounded,
+                          'Neutral',
+                        ),
+                      ],
                     ),
-                  ),
+                  ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0, duration: 400.ms),
                   const SizedBox(height: 24),
 
                   // Age Slider
                   _buildSectionTitle('AGE ($_age years)'),
                   const SizedBox(height: 8),
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          Slider(
-                            value: _age.toDouble(),
-                            min: 10.0,
-                            max: 90.0,
-                            divisions: 80,
-                            activeColor: Colors.deepPurple,
-                            inactiveColor: Colors.deepPurple.withOpacity(0.1),
-                            onChanged: (val) {
-                              setState(() {
-                                _age = val.toInt();
-                              });
-                            },
+                  GlassCard(
+                    color: Colors.white.withOpacity(0.05),
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: [
+                        Slider(
+                          value: _age.toDouble(),
+                          min: 10.0,
+                          max: 90.0,
+                          divisions: 80,
+                          activeColor: Theme.of(context).colorScheme.primary,
+                          inactiveColor: Colors.white24,
+                          onChanged: (val) {
+                            setState(() {
+                              _age = val.toInt();
+                            });
+                          },
+                        ),
+                        Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 12.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('10', style: TextStyle(color: Colors.white60)),
+                              Text('90', style: TextStyle(color: Colors.white60)),
+                            ],
                           ),
-                          Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 12.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('10', style: TextStyle(color: Colors.grey[600])),
-                                Text('90', style: TextStyle(color: Colors.grey[600])),
-                              ],
-                            ),
-                          )
-                        ],
-                      ),
+                        )
+                      ],
                     ),
-                  ),
+                  ).animate().fadeIn(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1, end: 0, duration: 400.ms),
                   const SizedBox(height: 24),
 
                   // Preferred Style Cards
                   _buildSectionTitle('PREFERRED STYLE'),
                   const SizedBox(height: 8),
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: Colors.grey.shade200),
+                  GlassCard(
+                    color: Colors.white.withOpacity(0.05),
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildStyleChip('classic', 'Classic'),
+                        _buildStyleChip('trendy', 'Trendy'),
+                        _buildStyleChip('athletic', 'Athletic'),
+                      ],
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildStyleChip('classic', 'Classic'),
-                          _buildStyleChip('trendy', 'Trendy'),
-                          _buildStyleChip('athletic', 'Athletic'),
-                        ],
-                      ),
+                  ).animate().fadeIn(duration: 400.ms, delay: 200.ms).slideY(begin: 0.1, end: 0, duration: 400.ms),
+                  const SizedBox(height: 24),
+
+                  // App Settings
+                  _buildSectionTitle('APP SETTINGS'),
+                  const SizedBox(height: 8),
+                  GlassCard(
+                    color: Colors.white.withOpacity(0.05),
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.volume_off_rounded, color: Colors.white70, size: 20),
+                            SizedBox(width: 12),
+                            Text(
+                              'Mute AI Voice Output',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                            ),
+                          ],
+                        ),
+                        Switch(
+                          value: _muteVoiceOutput,
+                          activeColor: Theme.of(context).colorScheme.primary,
+                          onChanged: (val) {
+                            setState(() {
+                              _muteVoiceOutput = val;
+                            });
+                          },
+                        ),
+                      ],
                     ),
-                  ),
+                  ).animate().fadeIn(duration: 400.ms, delay: 300.ms).slideY(begin: 0.1, end: 0, duration: 400.ms),
                   const SizedBox(height: 48),
 
                   // Save Profile Button
@@ -230,19 +250,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildGenderChip(String value, IconData icon, String label) {
     final isSelected = _gender == value;
-    final primaryColor = Colors.deepPurple;
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return ChoiceChip(
       avatar: Icon(
         icon,
-        color: isSelected ? Colors.white : Colors.grey[600],
+        color: isSelected ? Colors.white : Colors.white60,
         size: 18,
       ),
       label: Text(label),
       selected: isSelected,
       selectedColor: primaryColor,
+      backgroundColor: Colors.white10,
+      side: BorderSide(color: isSelected ? primaryColor : Colors.white24),
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.black87,
+        color: isSelected ? Colors.white : Colors.white70,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
       ),
       onSelected: (selected) {
@@ -257,14 +279,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildStyleChip(String value, String label) {
     final isSelected = _preferredStyle == value;
-    final primaryColor = Colors.deepPurple;
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
       selectedColor: primaryColor,
+      backgroundColor: Colors.white10,
+      side: BorderSide(color: isSelected ? primaryColor : Colors.white24),
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.black87,
+        color: isSelected ? Colors.white : Colors.white70,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
       ),
       onSelected: (selected) {

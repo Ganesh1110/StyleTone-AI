@@ -3,6 +3,7 @@ import 'package:camera/camera.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'theme/app_theme.dart';
 
 List<CameraDescription>? cameras;
 
@@ -28,10 +29,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'StyleTone AI',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.darkTheme,
       home: cameras != null && cameras!.isNotEmpty
           ? (seenOnboarding
               ? HomeScreen(cameras: cameras!)
