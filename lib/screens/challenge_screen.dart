@@ -1,6 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/challenge.dart';
+import '../models/closet_item.dart';
+import '../models/color_recommendation.dart';
 import '../services/database_helper.dart';
 import '../widgets/glass_card.dart';
 import 'challenge_detail_screen.dart';
@@ -42,13 +46,192 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
       return;
     }
 
+    final allItems = await DatabaseHelper.instance.getAllClosetItems();
+    if (allItems.length < 10) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Add at least 10 items to your closet first!')),
+        );
+      }
+      return;
+    }
+
+    if (mounted) {
+      _showCapsulePicker(allItems);
+    }
+  }
+
+  void _showCapsulePicker(List<ClosetItem> allItems) {
+    final selectedIds = <String>{};
+    final maxSelection = allItems.length < 30 ? allItems.length : 30;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Container(
+              height: MediaQuery.of(ctx).size.height * 0.75,
+              padding: EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Build Your Capsule',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+                      ),
+                      Text(
+                        '${selectedIds.length}/$maxSelection',
+                        style: TextStyle(
+                          color: selectedIds.length >= maxSelection ? Colors.green : Colors.white54,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Select $maxSelection items for your 30-day capsule wardrobe',
+                    style: TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                  SizedBox(height: 16),
+                  Expanded(
+                    child: GridView.builder(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                        childAspectRatio: 0.75,
+                      ),
+                      itemCount: allItems.length,
+                      itemBuilder: (ctx, index) {
+                        final item = allItems[index];
+                        final isSelected = selectedIds.contains(item.id);
+                        final isMaxed = selectedIds.length >= maxSelection && !isSelected;
+
+                        return GestureDetector(
+                          onTap: isMaxed
+                              ? null
+                              : () {
+                                  setModalState(() {
+                                    if (isSelected) {
+                                      selectedIds.remove(item.id);
+                                    } else if (selectedIds.length < maxSelection) {
+                                      selectedIds.add(item.id);
+                                    }
+                                  });
+                                },
+                          child: Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.file(
+                                  File(item.imagePath),
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                ),
+                              ),
+                              if (isSelected)
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.3),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.green, width: 2),
+                                  ),
+                                  child: Center(
+                                    child: Icon(Icons.check_circle_rounded, color: Colors.green, size: 28),
+                                  ),
+                                ),
+                              if (!isSelected && isMaxed)
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.4),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              Positioned(
+                                bottom: 4,
+                                left: 4,
+                                right: 4,
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black54,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    item.colorName,
+                                    style: TextStyle(fontSize: 9, color: Colors.white),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: selectedIds.length < 5 ? null : () {
+                        final capsuleItems = allItems.where((i) => selectedIds.contains(i.id)).toList();
+                        Navigator.pop(ctx);
+                        _createChallenge(capsuleItems);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple,
+                        disabledBackgroundColor: Colors.grey.shade800,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                      ),
+                      child: Text(
+                        selectedIds.length < 5
+                            ? 'Select at least 5 items'
+                            : 'Start Challenge (${selectedIds.length} items)',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _createChallenge(List<ClosetItem> capsuleItems) async {
+    // Get latest scan for season palette
+    final history = await DatabaseHelper.instance.fetchAllHistory();
+    ColorRecommendation? rec;
+    if (history.isNotEmpty) {
+      rec = history.first.recommendation;
+    }
+
+    final seasonJson = rec != null ? json.encode(rec.toJson()) : null;
+
     final challenge = Challenge(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       title: '30-Day Capsule Wardrobe',
-      description: 'Build a versatile 30-piece capsule and master colour coordination with your seasonal palette.',
+      description: 'Personalised with your ${rec?.detectedCategory ?? 'season'} palette and ${capsuleItems.length} capsule items.',
       totalDays: 30,
       startDate: DateTime.now(),
       isActive: true,
+      capsuleItemIds: capsuleItems.map((i) => i.id).toList(),
+      seasonPaletteJson: seasonJson,
     );
 
     await DatabaseHelper.instance.insertChallenge(challenge);
@@ -75,7 +258,7 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
               onPressed: _startNewChallenge,
               backgroundColor: Colors.deepPurple,
               icon: Icon(Icons.play_arrow_rounded, color: Colors.white),
-              label: Text('Start 30-Day Challenge', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              label: Text('New Challenge', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             )
           : null,
     );
@@ -100,20 +283,14 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
             ),
             SizedBox(height: 12),
             Text(
-              'Select 30 items from your closet. Each day, we will challenge you\nto style them in new ways using your seasonal palette.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.white70,
-                height: 1.5,
-              ),
+              'Select items from your closet to build a capsule.\nEach day, we will challenge you to style them\nusing your personal seasonal palette.',
+              style: TextStyle(color: Colors.white70, height: 1.5),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 8),
             Text(
-              'Complete all 30 days to earn the\n"Capsule Graduate" badge!',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.amber.shade300,
-                fontWeight: FontWeight.bold,
-              ),
+              'Complete all 30 days to earn the "Capsule Graduate" badge!',
+              style: TextStyle(color: Colors.amber.shade300, fontWeight: FontWeight.bold, fontSize: 13),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 32),
@@ -213,8 +390,18 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
                   ),
               ],
             ),
-            SizedBox(height: 16),
-            // Progress bar
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.inventory_2_rounded, size: 14, color: Colors.white38),
+                SizedBox(width: 4),
+                Text(
+                  '${challenge.capsuleSize} capsule items',
+                  style: TextStyle(color: Colors.white38, fontSize: 12),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: LinearProgressIndicator(
@@ -280,12 +467,8 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
                       Icon(Icons.emoji_events_rounded, color: Colors.white, size: 18),
                       SizedBox(width: 8),
                       Text(
-                        'Badge Earned: ${challenge.badgeName}',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
+                        'Badge: ${challenge.badgeName}',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                     ],
                   ),

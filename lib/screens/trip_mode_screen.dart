@@ -176,11 +176,13 @@ class _TripModeScreenState extends State<TripModeScreen> {
                               SizedBox(width: 12),
                               Icon(Icons.interests_rounded, size: 14, color: Colors.white38),
                               SizedBox(width: 4),
-                              Text(
-                                trip.activities.join(', '),
-                                style: TextStyle(color: Colors.white38, fontSize: 12),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              Expanded(
+                                child: Text(
+                                  trip.activities.join(', '),
+                                  style: TextStyle(color: Colors.white38, fontSize: 12),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ],
                           ],

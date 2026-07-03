@@ -28,7 +28,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -130,7 +130,9 @@ class DatabaseHelper {
           startDate TEXT NOT NULL,
           isActive INTEGER NOT NULL DEFAULT 0,
           isCompleted INTEGER NOT NULL DEFAULT 0,
-          badgeName TEXT
+          badgeName TEXT,
+          capsuleItemIds TEXT DEFAULT '',
+          seasonPaletteJson TEXT
         )
       ''');
       await db.execute('''
@@ -166,6 +168,15 @@ class DatabaseHelper {
         )
       ''');
       debugPrint('SQLite database upgraded to version 3: added challenges, trips, timeline tables');
+    }
+    if (oldVersion < 4) {
+      try {
+        await db.execute('ALTER TABLE challenges ADD COLUMN capsuleItemIds TEXT DEFAULT \'\'');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE challenges ADD COLUMN seasonPaletteJson TEXT');
+      } catch (_) {}
+      debugPrint('SQLite database upgraded to version 4: added capsuleItemIds, seasonPaletteJson columns');
     }
   }
 
