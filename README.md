@@ -29,10 +29,6 @@
   <a href="https://github.com/Ganesh1110/StyleTone-AI/releases">
     <img src="https://img.shields.io/badge/Github%20Releases-black?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Releases">
   </a>
-  &nbsp;&nbsp;
-  <a href="https://sourceforge.net/projects/styletone-ai/files/app-release.apk/download">
-    <img src="https://img.shields.io/badge/SourceForge-Download%20Now-brightgreen?style=for-the-badge&logo=sourceforge&logoColor=white" alt="SourceForge">
-  </a>
 </p>
 
 ---
