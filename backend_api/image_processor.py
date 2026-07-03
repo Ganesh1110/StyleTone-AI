@@ -1,3 +1,4 @@
+import os
 import cv2
 import numpy as np
 import base64
@@ -32,11 +33,31 @@ def adjust_color_for_occasion(hex_color, occasion):
     return rgb_to_hex((r * 255, g * 255, b * 255))
 
 
+def _get_cascade_path():
+    """Return a path to haarcascade_frontalface_default.xml,
+    preferring a local copy over the OpenCV data directory."""
+    local_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        'haarcascade_frontalface_default.xml'
+    )
+    if os.path.exists(local_path):
+        return local_path
+    try:
+        return cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+    except AttributeError:
+        return local_path
+
+
 def _detect_face(img):
     """Detect the largest face and return a cropped region expanded by 30%."""
-    face_cascade = cv2.CascadeClassifier(
-        cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
-    )
+    cascade_path = _get_cascade_path()
+    if not os.path.exists(cascade_path):
+        logger.error("Haar cascade file not found at: %s", cascade_path)
+        raise RuntimeError("Face detection model not found on server.")
+    face_cascade = cv2.CascadeClassifier(cascade_path)
+    if face_cascade.empty():
+        logger.error("Failed to load Haar cascade from: %s", cascade_path)
+        raise RuntimeError("Failed to load face detection model.")
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(gray, 1.1, 5, minSize=(80, 80))
     if len(faces) == 0:

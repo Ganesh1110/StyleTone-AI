@@ -143,7 +143,7 @@ async def get_color_recommendation(request: ImageRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error("Server error in /recommend: %s", e, exc_info=True)
-        raise HTTPException(status_code=500, detail="Analysis failed. Please try again.")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/scrape-dress")
@@ -257,7 +257,7 @@ async def analyze_clothing(request: ClothingRequest):
         raise
     except Exception as e:
         logger.error("Clothing color analysis failed: %s", e, exc_info=True)
-        raise HTTPException(status_code=500, detail="Clothing analysis failed. Please try again.")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/")
