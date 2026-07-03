@@ -13,9 +13,10 @@
   <img src="https://img.shields.io/badge/Flutter-v3.0+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter Badge">
   <img src="https://img.shields.io/badge/FastAPI-v0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI Badge">
   <img src="https://img.shields.io/badge/Python-v3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Badge">
-  <img src="https://img.shields.io/badge/OpenCV-v4.0+-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white" alt="OpenCV Badge">
+  <img src="https://img.shields.io/badge/OpenCV-v4.10.84-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white" alt="OpenCV Badge">
   <img src="https://img.shields.io/badge/SQLite-v3.0+-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite Badge">
   <img src="https://img.shields.io/badge/License-MIT-F39C12?style=for-the-badge" alt="License Badge">
+  <img src="https://img.shields.io/badge/Google%20ML%20Kit-Face-FF6F00?style=for-the-badge&logo=google&logoColor=white" alt="ML Kit Badge">
 </p>
 
 ---
@@ -40,8 +41,9 @@ StyleTone AI is a private, offline-first personal styling companion. It uses com
 
 - 🧠 **CIELAB Delta E Seasonal Classification**: Computes color distances between skin tones and 4 seasonal color families (Spring, Summer, Autumn, Winter) with precise match confidence metrics.
 - 🧼 **HSV/YCrCb Skin Segmentation**: Isolates pure skin pixels on the backend—filtering out hair, eyebrows, lips, eyes, and background for a 100% precise color match.
+- 📸 **On-Device Face Cropping**: Google ML Kit detects the face bounding box on-device; the face region is cropped before sending to the backend, ensuring reliable skin analysis regardless of server-side face detection availability.
+- 🎨 **Skin-Tone Adaptive Palettes**: Palette colors are adjusted in HSV space based on the detected skin lightness (L*). Darker skin gets more vibrant shades; lighter skin gets softer, muted tones—even within the same seasonal category.
 - 🎙️ **Offline Phonemic Text-to-Speech**: An offline speech synthesizer (`flutter_tts`) reads stylist tips aloud using local device voices, protecting your privacy.
-- 📸 **On-Device Face Quality Checker**: Validates face alignment, lighting, and frame coverage using Google ML Kit (`google_mlkit_face_detection`) prior to upload.
 
 ### 👔 2. Premium Experience & Social Sharing (v2.0.0)
 
@@ -59,7 +61,13 @@ StyleTone AI is a private, offline-first personal styling companion. It uses com
 
 - 🎥 **On-Device Real-Time Analyzer**: Point your camera at any physical garment in a store. The app converts camera stream frames (YUV420 on Android, BGRA on iOS) locally in Dart at 30 FPS.
 - 🎯 **Target Reticle Overlay**: Renders a circular targeting reticle in the middle of the camera feed to lock onto fabric colors.
-- 🔥 **Instant Match Score**: Compares the live target color against your personal season colors to display a real-time match gauge (e.g., _Avoid Color_ vs. _Perfect Match! 🌟_).
+- 🔥 **Instant Match Score**: Compares the live target color against your personal season colors to display a real-time match gauge (e.g., _Avoid Color_ vs. _Perfect Match!_).
+
+### 🗂️ 5. Analysis History Management (v3.5.0)
+
+- 📜 **Full History Log**: Every scan is saved locally with the photo, season result, and occasion.
+- 🗑️ **Swipe-to-Delete / Individual Delete**: Remove single history entries with a swipe gesture or the delete icon on each card.
+- 🧹 **Clear All**: Bulk-delete all history with a confirmation dialog.
 
 ---
 
@@ -76,7 +84,9 @@ The FastAPI backend uses a **CIELAB Delta E ($\Delta E$) color difference classi
 
 3. **Similarity Softmax**:
    Distance scores are normalized using an exponential decay function to compute a precise **Match Confidence Percentage**.
-4. **Explainable AI Output**:
+4. **Skin-Tone Adaptive HSV Adjustment**:
+   Once the season is determined, each palette color is converted to HSV and adjusted based on the skin's $L^*$ lightness value. Darker skin tones receive more saturated, brighter shades; lighter skin tones receive softer, muted shades—producing unique hex codes for each user even within the same season.
+5. **Explainable AI Output**:
    The system details your undertones (e.g., warm golden/peach, cool rosy/pink) and lightness depth (e.g., fair, medium, rich) to justify the seasonal classification.
 
 ---
@@ -87,8 +97,9 @@ The FastAPI backend uses a **CIELAB Delta E ($\Delta E$) color difference classi
 flowchart TD
     %% Client App
     subgraph Client [Flutter Mobile Client]
-        A[Home Dashboard] -->|Viewfinder / Gallery| B[Face Detection & Quality Checker]
-        B -- Validated --> C[FastAPI /recommend Endpoint]
+        A[Home Dashboard] -->|Viewfinder / Gallery| B[On-Device Face Detection & Quality Check]
+        B -- ML Kit Bounding Box --> B2[Face Crop + 30% Padding]
+        B2 -- Cropped Face Image --> C[FastAPI /recommend Endpoint]
         C -->|JSON Palettes| D[Result Page TabBar]
 
         %% Closet Subsystem
@@ -102,20 +113,24 @@ flowchart TD
         I -->|Latest Profile Season| H
         I -->|Active Season Target| J[Live Viewfinder Color Matcher]
 
+        %% History Management
+        I -->|Clear / Delete| K[History Management UI]
+
         %% Stream Loop
-        K[Live Camera Stream] -->|Local YUV420/BGRA Frame Conversion| J
+        L[Live Camera Stream] -->|Local YUV420/BGRA Frame Conversion| J
     end
 
     %% Backend Server
     subgraph Backend [FastAPI Stateless Backend]
-        C --> L[HSV/YCrCb Skin Segmentation Mask]
-        L --> M[K-Means Undertone Clustering]
-        M --> N[CIELAB Delta E Classifier]
-        N -->|Office, Party, Casual Palettes| C
+        C --> M[HSV/YCrCb Skin Segmentation Mask]
+        M --> N[K-Means Undertone Clustering]
+        N --> O[CIELAB Delta E Classifier]
+        O --> P[Skin-Tone Adaptive HSV Adjustment]
+        P -->|Office, Party, Casual Palettes| C
 
-        F --> O[Fabric Dominant Color K-Means]
-        O --> P[RGB Euclidean Color Classification]
-        P -->|Color Metadata| F
+        F --> Q[Fabric Dominant Color K-Means]
+        Q --> R[RGB Euclidean Color Classification]
+        R -->|Color Metadata| F
     end
 ```
 
@@ -125,21 +140,25 @@ flowchart TD
 
 ```text
 StyleTone-AI/
-├── assets/                     # App media assets
-│   └── images/                 # App logo and repository banner
-├── backend_api/                # FastAPI Python Backend
-│   ├── api/                    # Server routing entry point (index.py)
-│   ├── color_matrix.json       # Seasonal palettes configurations
-│   ├── image_processor.py      # Skin segmentation & Delta E classifier algorithms
-│   └── start.sh                # Local backend startup script
-├── lib/                        # Flutter Application Source
-│   ├── models/                 # Data parsing objects (HistoryItem, ClosetItem, ColorRecommendation)
-│   ├── screens/                # UI screens (Home, Closet, Outfit Combinator, Live Matcher, Result)
-│   └── services/               # Services (ApiService, DatabaseHelper, TtsService, ProfileService)
-├── bump_version.py             # Automated version bumper script (Frontend only)
-├── build_apk.sh                # Automated release APK builder script
-├── RELEASE_GUIDE.md            # Version release checklist and instructions
-└── pubspec.yaml                # Flutter project configuration & assets declaration
+├── assets/                       # App media assets
+│   └── images/                   # App logo and repository banner
+├── backend_api/                  # FastAPI Python Backend
+│   ├── api/                      # Server routing entry point (index.py)
+│   ├── color_matrix.json         # Seasonal palettes configurations
+│   ├── haarcascade_frontalface_default.xml  # Local Haar cascade for face detection fallback
+│   ├── image_processor.py        # Skin segmentation, Delta E classifier, skin-tone adaptive palettes
+│   ├── requirements.txt          # Python dependencies (opencv, scikit-learn, fastapi, etc.)
+│   └── start.sh                  # Local backend startup script
+├── lib/                          # Flutter Application Source
+│   ├── models/                   # Data parsing objects (HistoryItem, ClosetItem, ColorRecommendation)
+│   ├── screens/                  # UI screens (Home, Preview, Closet, Outfit Combinator, Live Matcher, Result, History)
+│   ├── services/                 # Services (ApiService, DatabaseHelper, TtsService, ProfileService, HistoryService)
+│   ├── theme/                    # App theme configuration
+│   └── widgets/                  # Reusable widgets (GlassCard, SkeletonLoader)
+├── bump_version.py               # Automated version bumper script
+├── build_apk.sh                  # Automated release APK builder script
+├── RELEASE_GUIDE.md              # Version release checklist and instructions
+└── pubspec.yaml                  # Flutter project configuration & assets declaration
 ```
 
 ---
@@ -172,7 +191,10 @@ To run on an **Android Emulator** or **iOS Simulator**:
    - For Android Emulator: Use `http://10.0.2.2:8000`
    - For iOS Simulator: Use `http://localhost:8000`
    - For Production: Use `https://style-tone-ai.vercel.app`
-2. Run the application:
+2. Enable Google ML Kit face detection:
+   - **Android**: Set `minSdkVersion` to 21+ in `android/app/build.gradle` (ML Kit requirement)
+   - **iOS**: Add `NSCameraUsageDescription` to `ios/Runner/Info.plist`
+3. Run the application:
 
    ```bash
    # Get dependencies

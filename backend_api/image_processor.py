@@ -180,6 +180,31 @@ def _get_gendered_stylist_tip(detected_season: str, occasion: str, gender: str) 
             return f"{detected_season} Casual: Relaxed, natural shades curated for everyday comfort and clean color harmony."
 
 
+def _adjust_for_skin_tone(hex_color: str, l_val: float) -> str:
+    """Adjust a palette color based on the skin's CIE L* lightness value.
+    Darker skin → more vibrant (higher saturation & brightness).
+    Lighter skin → softer (lower saturation, slightly lower brightness).
+    """
+    r, g, b = hex_to_rgb(hex_color)
+    h, s, v = colorsys.rgb_to_hsv(r / 255.0, g / 255.0, b / 255.0)
+
+    if l_val < 95:
+        s = min(1.0, s * 1.3)
+        v = min(1.0, v * 1.25)
+    elif l_val < 140:
+        s = min(1.0, s * 1.1)
+        v = min(1.0, v * 1.1)
+    elif l_val > 190:
+        s = max(0.25, s * 0.7)
+        v = max(0.35, v * 0.85)
+    else:
+        s = max(0.3, s * 0.85)
+        v = max(0.4, v * 0.95)
+
+    r, g, b = colorsys.hsv_to_rgb(h, s, v)
+    return rgb_to_hex((r * 255, g * 255, b * 255))
+
+
 def process_selfie(base64_image: str, gender: str = "neutral"):
     try:
         if base64_image.startswith("data:image"):
@@ -312,9 +337,9 @@ def process_selfie(base64_image: str, gender: str = "neutral"):
         for occ in ["office", "party", "casual"]:
             selected_palette = palette[occ]
             palettes_out[occ] = {
-                "primary_color": selected_palette[0],
-                "secondary_color": selected_palette[1],
-                "accent_color": selected_palette[2],
+                "primary_color": _adjust_for_skin_tone(selected_palette[0], l_val),
+                "secondary_color": _adjust_for_skin_tone(selected_palette[1], l_val),
+                "accent_color": _adjust_for_skin_tone(selected_palette[2], l_val),
                 "message": _get_gendered_stylist_tip(detected_season, occ, gender),
             }
 
