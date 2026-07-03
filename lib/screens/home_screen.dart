@@ -8,6 +8,7 @@ import 'history_screen.dart';
 import 'profile_screen.dart';
 import 'closet_screen.dart';
 import 'outfit_combinator_screen.dart';
+import 'live_matcher_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -46,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final List<Widget> pages = [
       _buildScannerTab(theme),
+      LiveMatcherScreen(cameras: widget.cameras),
       const ClosetScreen(),
       const OutfitCombinatorScreen(),
     ];
@@ -59,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _currentIndex = index;
           });
         },
+        type: BottomNavigationBarType.fixed, // Set type to fixed to display all 4 items cleanly
         selectedItemColor: Colors.deepPurple,
         unselectedItemColor: Colors.grey,
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
@@ -69,12 +72,16 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Stylist Scan',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.center_focus_strong_rounded),
+            label: 'Live Match',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.checkroom_rounded),
             label: 'My Closet',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.style_rounded),
-            label: 'Outfit Matcher',
+            label: 'Outfit Match',
           ),
         ],
       ),
