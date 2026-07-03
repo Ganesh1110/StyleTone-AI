@@ -6,13 +6,13 @@
 
 ## Version Roadmap
 
-| Version | Focus |
-| ------- | ----- |
-| **v1.1** | Polished foundation: accurate analysis, explainable AI, privacy, quality validation |
-| **v1.5** | Seasonal analysis, weather/location awareness, expanded occasions |
-| **v2.0** | Wardrobe scanner, outfit generator, AI chat stylist, style score |
-| **v2.5** | Virtual try-on, AR camera, makeup/hair, advanced personalization |
-| **v3.0** | Full AI fashion ecosystem — trend analysis, personal shopper, premium tiers |
+| Version | Status | Focus |
+| ------- | ------ | ----- |
+| **v1.0.0** | ✅ Completed | Core Stylist Scanner: Accurate face crop, on-device AI quality validation, Native text-to-speech reader. |
+| **v1.5.0** | ✅ Completed | Personalization: Profile setups, HSV/YCrCb skin segmentation, dynamic gendered rules, rating feedback. |
+| **v2.0.0** | ✅ Completed | Premium Experience: One-Scan multi-occasion parallel tabs, native image sharing card, local SQLite database migration. |
+| **v2.5.0** | ✅ Completed | Wardrobe Integration: Local virtual closet uploader, local image files, FastAPI color analyzer, outfit combinations. |
+| **v3.0.0** | ✅ Completed | Real-Time Matcher: Viewfinder image stream color converter (YUV420/BGRA), local Euclidean match scoring. |
 
 ---
 
