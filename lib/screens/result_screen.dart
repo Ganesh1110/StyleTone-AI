@@ -37,7 +37,8 @@ class ResultScreen extends StatefulWidget {
   State<ResultScreen> createState() => _ResultScreenState();
 }
 
-class _ResultScreenState extends State<ResultScreen> {
+class _ResultScreenState extends State<ResultScreen>
+    with SingleTickerProviderStateMixin {
   ColorRecommendation? _recommendation;
   String _errorMessage = '';
   bool _isLoading = true;
@@ -45,6 +46,7 @@ class _ResultScreenState extends State<ResultScreen> {
   String? _ttsStatusMessage;
   String? _historyId;
   int _rating = 0;
+  late final TabController _tabController;
 
   // Step-by-step loading states
   final List<String> _loadingSteps = [
@@ -60,6 +62,7 @@ class _ResultScreenState extends State<ResultScreen> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
     _tts = TtsService(onProgressChanged: _onTtsProgress);
     if (widget.preloadedRecommendation != null) {
       _recommendation = widget.preloadedRecommendation;
@@ -105,6 +108,7 @@ class _ResultScreenState extends State<ResultScreen> {
   @override
   void dispose() {
     _loadingTimer?.cancel();
+    _tabController.dispose();
     _tts.dispose();
     super.dispose();
   }
@@ -134,6 +138,7 @@ class _ResultScreenState extends State<ResultScreen> {
       // Save to history cache
       final historyService = HistoryService();
       _historyId = await historyService.saveItem(widget.imageFile, widget.occasion, recommendation);
+      if (mounted) setState(() {});
 
       _speakRecommendation(auto: true);
     } catch (e) {
@@ -440,6 +445,24 @@ class _ResultScreenState extends State<ResultScreen> {
               ),
             ),
         ],
+        bottom: _recommendation != null
+            ? TabBar(
+                controller: _tabController,
+                indicatorColor: Colors.white,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white54,
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+                unselectedLabelStyle: const TextStyle(fontSize: 13),
+                tabs: const [
+                  Tab(text: 'Office'),
+                  Tab(text: 'Party'),
+                  Tab(text: 'Casual'),
+                ],
+              )
+            : null,
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -523,50 +546,24 @@ class _ResultScreenState extends State<ResultScreen> {
   Widget _buildResultState() {
     final rec = _recommendation!;
 
-    return DefaultTabController(
-      length: 3,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeaderSection(rec),
-          const SizedBox(height: 24),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildHeaderSection(rec),
+        const SizedBox(height: 24),
 
-          // Occasion Tab Selection Layout
-          Container(
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: TabBar(
-              indicator: BoxDecoration(
-                color: Theme.of(context).colorScheme.secondary,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white54,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              tabs: const [
-                Tab(text: 'Office'),
-                Tab(text: 'Party'),
-                Tab(text: 'Casual'),
-              ],
-            ),
+        // Occasion Pages
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildOccasionDetails(rec, 'office'),
+              _buildOccasionDetails(rec, 'party'),
+              _buildOccasionDetails(rec, 'casual'),
+            ],
           ),
-          const SizedBox(height: 24),
-
-          // Occasion Pages
-          Expanded(
-            child: TabBarView(
-              children: [
-                _buildOccasionDetails(rec, 'office'),
-                _buildOccasionDetails(rec, 'party'),
-                _buildOccasionDetails(rec, 'casual'),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
