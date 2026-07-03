@@ -54,7 +54,7 @@ class _OutfitCombinatorScreenState extends State<OutfitCombinatorScreen> with Si
     }
   }
 
-  // Calculate Euclidean distance between two hex color codes
+  // Calculate perceptual color distance using the redmean approximation formula
   double _getColorDistance(String hex1, String hex2) {
     try {
       final r1 = int.parse(hex1.substring(1, 3), radix: 16);
@@ -65,16 +65,25 @@ class _OutfitCombinatorScreenState extends State<OutfitCombinatorScreen> with Si
       final g2 = int.parse(hex2.substring(3, 5), radix: 16);
       final b2 = int.parse(hex2.substring(5, 7), radix: 16);
       
-      return ((r1 - r2) * (r1 - r2) + (g1 - g2) * (g1 - g2) + (b1 - b2) * (b1 - b2)).toDouble();
+      final double meanR = (r1 + r2) / 2.0;
+      final double deltaR = (r1 - r2).toDouble();
+      final double deltaG = (g1 - g2).toDouble();
+      final double deltaB = (b1 - b2).toDouble();
+
+      final double weightR = 2.0 + meanR / 256.0;
+      final double weightG = 4.0;
+      final double weightB = 2.0 + (255.0 - meanR) / 256.0;
+
+      return weightR * deltaR * deltaR + weightG * deltaG * deltaG + weightB * deltaB * deltaB;
     } catch (e) {
-      return 195075.0; // Max possible distance (white to black)
+      return 585225.0; // Max possible redmean distance squared
     }
   }
 
   int _calculateMatchScore(double distSquared) {
-    // Max distance squared is 3 * 255^2 = 195075
-    // Scale so small distances yield high match percentages
-    final double score = 100.0 - (distSquared / 1500.0);
+    // Redmean distance squared maxes out at ~585,000.
+    // We scale it so that a visual distance squared of 15,000 or greater yields 0%, and 0 yields 100%
+    final double score = 100.0 - (distSquared / 150.0);
     return score.clamp(0, 100).round();
   }
 
@@ -427,9 +436,15 @@ class _OutfitCombinatorScreenState extends State<OutfitCombinatorScreen> with Si
                       ],
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'No matching items in closet.',
-                      style: TextStyle(fontSize: 12, color: Colors.redAccent, fontStyle: FontStyle.italic),
+                    Row(
+                      children: [
+                        Icon(Icons.add_circle_outline_rounded, size: 14, color: Colors.orange.shade700),
+                        const SizedBox(width: 6),
+                        Text(
+                          'No garments registered. Tap closet to add.',
+                          style: TextStyle(fontSize: 12, color: Colors.orange.shade700, fontWeight: FontWeight.w500),
+                        ),
+                      ],
                     ),
                   ],
                 ],

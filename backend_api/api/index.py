@@ -205,13 +205,37 @@ async def analyze_clothing(request: ClothingRequest):
         pixels = crop.reshape(-1, 3)
         pixels = np.float32(pixels)
         
-        # Run K-Means clustering (K=1) to extract the single dominant color
+        # Run K-Means clustering (K=3) to extract dominant color components
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-        _, _, centers = cv2.kmeans(pixels, 1, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+        compactness, labels, centers = cv2.kmeans(pixels, 3, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
         
-        # Extracted color channels (OpenCV defaults to BGR)
-        bgr = centers[0]
-        r, g, b = int(bgr[2]), int(bgr[1]), int(bgr[0])
+        # Count frequency of each cluster label
+        unique_labels, counts = np.unique(labels, return_counts=True)
+        
+        # Sort clusters by size (pixel count) descending
+        sorted_indices = np.argsort(-counts)
+        
+        # Select the most dominant cluster that isn't white (background) or black (shadow/hanger)
+        selected_bgr = None
+        for idx in sorted_indices:
+            bgr_center = centers[idx]
+            b, g, r = int(bgr_center[0]), int(bgr_center[1]), int(bgr_center[2])
+            
+            # Check if this cluster is background white/light-gray (R, G, B all > 220 and saturation is low)
+            is_white_bg = (r > 220 and g > 220 and b > 220 and max(r, g, b) - min(r, g, b) < 20)
+            
+            # Check if this cluster is shadow or black hanger (R, G, B all < 45)
+            is_black_bg = (r < 45 and g < 45 and b < 45)
+            
+            if not is_white_bg and not is_black_bg:
+                selected_bgr = bgr_center
+                break
+        
+        # Fallback to the most dominant cluster if all are filtered out
+        if selected_bgr is None:
+            selected_bgr = centers[sorted_indices[0]]
+            
+        r, g, b = int(selected_bgr[2]), int(selected_bgr[1]), int(selected_bgr[0])
         
         # Get matching hex string and color name
         hex_color = '#{:02x}{:02x}{:02x}'.format(r, g, b)

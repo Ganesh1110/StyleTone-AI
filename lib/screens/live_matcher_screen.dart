@@ -153,6 +153,9 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
       final int cy = height ~/ 2;
 
       int r = 255, g = 255, b = 255;
+      int sumR = 0, sumG = 0, sumB = 0;
+      int count = 0;
+      const int halfGrid = 4; // 9x9 grid around the center pixel
 
       // Extract colors from center coordinates depending on frame format
       if (image.format.group == ImageFormatGroup.yuv420) {
@@ -163,30 +166,67 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
 
         final int yRowStride = yPlane.bytesPerRow;
         final int yPixelStride = yPlane.bytesPerPixel ?? 1;
-        final int yIndex = cy * yRowStride + cx * yPixelStride;
-        final int yVal = yPlane.bytes[yIndex];
-
         final int uvRowStride = uPlane.bytesPerRow;
         final int uvPixelStride = uPlane.bytesPerPixel ?? 2;
-        final int uvIndex = (cy ~/ 2) * uvRowStride + (cx ~/ 2) * uvPixelStride;
 
-        final int uVal = uPlane.bytes[uvIndex < uPlane.bytes.length ? uvIndex : uPlane.bytes.length - 1];
-        final int vVal = vPlane.bytes[uvIndex < vPlane.bytes.length ? uvIndex : vPlane.bytes.length - 1];
+        for (int dy = -halfGrid; dy <= halfGrid; dy++) {
+          final int py = (cy + dy).clamp(0, height - 1);
+          for (int dx = -halfGrid; dx <= halfGrid; dx++) {
+            final int px = (cx + dx).clamp(0, width - 1);
 
-        // Standard YUV to RGB formulas
-        r = (yVal + 1.402 * (vVal - 128)).round().clamp(0, 255);
-        g = (yVal - 0.344136 * (uVal - 128) - 0.714136 * (vVal - 128)).round().clamp(0, 255);
-        b = (yVal + 1.772 * (uVal - 128)).round().clamp(0, 255);
+            final int yIndex = py * yRowStride + px * yPixelStride;
+            if (yIndex >= yPlane.bytes.length) continue;
+            final int yVal = yPlane.bytes[yIndex];
+
+            final int uvIndex = (py ~/ 2) * uvRowStride + (px ~/ 2) * uvPixelStride;
+            if (uvIndex >= uPlane.bytes.length || uvIndex >= vPlane.bytes.length) continue;
+            final int uVal = uPlane.bytes[uvIndex];
+            final int vVal = vPlane.bytes[uvIndex];
+
+            // Standard YUV to RGB conversion formula
+            final double rVal = yVal + 1.402 * (vVal - 128);
+            final double gVal = yVal - 0.344136 * (uVal - 128) - 0.714136 * (vVal - 128);
+            final double bVal = yVal + 1.772 * (uVal - 128);
+
+            sumR += rVal.round().clamp(0, 255);
+            sumG += gVal.round().clamp(0, 255);
+            sumB += bVal.round().clamp(0, 255);
+            count++;
+          }
+        }
+
+        if (count > 0) {
+          r = sumR ~/ count;
+          g = sumG ~/ count;
+          b = sumB ~/ count;
+        }
       } else if (image.format.group == ImageFormatGroup.bgra8888) {
         // BGRA8888 (iOS default)
         final plane = image.planes[0];
         final bytes = plane.bytes;
         final int pixelStride = plane.bytesPerPixel ?? 4;
-        final int index = cy * plane.bytesPerRow + cx * pixelStride;
+        final int rowStride = plane.bytesPerRow;
 
-        b = bytes[index];
-        g = bytes[index + 1];
-        r = bytes[index + 2];
+        for (int dy = -halfGrid; dy <= halfGrid; dy++) {
+          final int py = (cy + dy).clamp(0, height - 1);
+          for (int dx = -halfGrid; dx <= halfGrid; dx++) {
+            final int px = (cx + dx).clamp(0, width - 1);
+
+            final int index = py * rowStride + px * pixelStride;
+            if (index + 2 >= bytes.length) continue;
+
+            sumB += bytes[index];
+            sumG += bytes[index + 1];
+            sumR += bytes[index + 2];
+            count++;
+          }
+        }
+
+        if (count > 0) {
+          r = sumR ~/ count;
+          g = sumG ~/ count;
+          b = sumB ~/ count;
+        }
       }
 
       final String hexStr = '#${r.toRadixString(16).padLeft(2, '0')}${g.toRadixString(16).padLeft(2, '0')}${b.toRadixString(16).padLeft(2, '0')}';

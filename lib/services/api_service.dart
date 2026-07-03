@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
@@ -92,41 +93,77 @@ class ApiService {
   // Helper to resize image using the 'image' package
   Future<File> _resizeImage(File file, int maxSize) async {
     try {
-      // Read the original image
+      // Read the original image bytes
       final bytes = await file.readAsBytes();
-      final image = img.decodeImage(bytes);
 
-      if (image == null) return file;
+      // Spawn a background isolate to perform the CPU-heavy image decode and resize
+      final resizedBytes = await compute(_resizeImageIsolate, {
+        'bytes': bytes,
+        'maxSize': maxSize,
+      });
 
-      // Calculate new dimensions keeping aspect ratio
-      int width = image.width;
-      int height = image.height;
+      if (resizedBytes == null) return file;
 
-      if (width > maxSize || height > maxSize) {
-        if (width > height) {
-          height = (height * maxSize / width).round();
-          width = maxSize;
-        } else {
-          width = (width * maxSize / height).round();
-          height = maxSize;
-        }
-      }
-
-      // Resize the image
-      final resizedImage = img.copyResize(image, width: width, height: height);
-
-      // Encode back to JPEG
-      final resizedBytes = img.encodeJpg(resizedImage, quality: 85);
-
-      // Save to a temporary file
+      // Save the resulting bytes to a temporary file
       final tempDir = await getTemporaryDirectory();
       final tempFile = File(p.join(tempDir.path, 'resized_temp.jpg'));
       await tempFile.writeAsBytes(resizedBytes);
 
       return tempFile;
     } catch (e) {
-      // If resizing fails, return original file
+      debugPrint('Isolate image resizing failed, returning original: $e');
       return file;
     }
+  }
+
+  // Static helper to compress and save a file to a persistent destination path
+  static Future<File> compressAndSaveImage(File file, String targetPath, int maxSize) async {
+    try {
+      final bytes = await file.readAsBytes();
+      final resizedBytes = await compute(_resizeImageIsolate, {
+        'bytes': bytes,
+        'maxSize': maxSize,
+      });
+
+      final targetFile = File(targetPath);
+      if (resizedBytes != null) {
+        await targetFile.writeAsBytes(resizedBytes);
+      } else {
+        await file.copy(targetPath);
+      }
+      return targetFile;
+    } catch (e) {
+      debugPrint('Isolate compression failed, copying original: $e');
+      return await file.copy(targetPath);
+    }
+  }
+}
+
+// Top-level function for background isolate image resizing
+List<int>? _resizeImageIsolate(Map<String, dynamic> params) {
+  try {
+    final Uint8List bytes = params['bytes'] as Uint8List;
+    final int maxSize = params['maxSize'] as int;
+
+    final image = img.decodeImage(bytes);
+    if (image == null) return null;
+
+    int width = image.width;
+    int height = image.height;
+
+    if (width > maxSize || height > maxSize) {
+      if (width > height) {
+        height = (height * maxSize / width).round();
+        width = maxSize;
+      } else {
+        width = (width * maxSize / height).round();
+        height = maxSize;
+      }
+    }
+
+    final resizedImage = img.copyResize(image, width: width, height: height);
+    return img.encodeJpg(resizedImage, quality: 85);
+  } catch (e) {
+    return null;
   }
 }

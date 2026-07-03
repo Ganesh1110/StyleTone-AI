@@ -116,15 +116,13 @@ class _ClosetScreenState extends State<ClosetScreen>
 
     final File imageFile = File(pickedFile.path);
 
-    // Save locally to persistent app directories
+    // Compress and save locally to persistent app directories
     final appDir = await getApplicationDocumentsDirectory();
-    final String fileExtension = p.extension(imageFile.path).isEmpty
-        ? '.jpg'
-        : p.extension(imageFile.path);
-    final String uniqueFileName =
-        'closet_${DateTime.now().millisecondsSinceEpoch}$fileExtension';
+    final String uniqueFileName = 'closet_${DateTime.now().millisecondsSinceEpoch}.jpg';
     final String localSavedPath = p.join(appDir.path, uniqueFileName);
-    final File savedFile = await imageFile.copy(localSavedPath);
+    
+    // Scale down to a max width/height of 800px and compress to JPEG format in background thread
+    final File savedFile = await ApiService.compressAndSaveImage(imageFile, localSavedPath, 800);
 
     if (!mounted) return;
 

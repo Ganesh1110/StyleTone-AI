@@ -163,19 +163,47 @@ def process_selfie(base64_image: str, gender: str = "neutral"):
         if len(skin_pixels) < 100:
             skin_pixels = img.reshape(-1, 3)
 
-        # Run K-Means only on isolated skin pixels
-        kmeans = KMeans(n_clusters=2, n_init=10, random_state=42)
+        # Run K-Means only on isolated skin pixels (K=3 to separate highlights, shadows, and true skin)
+        kmeans = KMeans(n_clusters=3, n_init=10, random_state=42)
         kmeans.fit(skin_pixels)
         dominant_colors = kmeans.cluster_centers_.astype(int)
 
-        # Select the brighter cluster (pure skin)
+        # Select the cluster that represents true skin, avoiding highlights (glare) and deep shadows
         skin_rgb = None
-        max_l = -1
-        for color in dominant_colors:
+        best_score = -1.0
+        
+        # Calculate labels to know the count in each cluster
+        labels = kmeans.labels_
+        unique_labels, counts = np.unique(labels, return_counts=True)
+        total_pixels = len(labels)
+        
+        for i, color in enumerate(dominant_colors):
             lab_color = cv2.cvtColor(np.uint8([[color]]), cv2.COLOR_BGR2LAB)[0][0]
-            if lab_color[0] > max_l:
-                max_l = lab_color[0]
+            l_val = float(lab_color[0])
+            a_val = float(lab_color[1])
+            b_val = float(lab_color[2])
+            
+            # Weight based on cluster size representation
+            cluster_ratio = counts[i] / total_pixels
+            
+            # Penalize extreme highlights (sweat/glare, L > 235) and deep shadows (L < 50)
+            l_penalty = 1.0
+            if l_val > 235:
+                l_penalty = max(0.0, 1.0 - (l_val - 235) / 20.0)
+            elif l_val < 50:
+                l_penalty = max(0.0, 1.0 - (50 - l_val) / 25.0)
+                
+            # Skin tone prior score: skin tones are warm/rosy, so they have positive chromaticity (a > 130, b > 130 in OpenCV space)
+            # We give a small boost to colors in the realistic skin color quadrant
+            chroma_prior = 1.0
+            if a_val > 130 and b_val > 130:
+                chroma_prior = 1.2
+                
+            score = cluster_ratio * l_penalty * chroma_prior
+            if score > best_score:
+                best_score = score
                 skin_rgb = color
+
         if skin_rgb is None:
             skin_rgb = dominant_colors[0]
 
