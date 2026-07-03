@@ -1,0 +1,446 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import '../models/closet_item.dart';
+import '../models/history_item.dart';
+import '../services/database_helper.dart';
+
+class OutfitCombinatorScreen extends StatefulWidget {
+  const OutfitCombinatorScreen({super.key});
+
+  @override
+  State<OutfitCombinatorScreen> createState() => _OutfitCombinatorScreenState();
+}
+
+class _OutfitCombinatorScreenState extends State<OutfitCombinatorScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  bool _isLoading = true;
+  HistoryItem? _latestScan;
+  List<ClosetItem> _closetItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final history = await DatabaseHelper.instance.fetchAllHistory();
+      final closet = await DatabaseHelper.instance.getAllClosetItems();
+
+      setState(() {
+        if (history.isNotEmpty) {
+          _latestScan = history.first;
+        }
+        _closetItems = closet;
+      });
+    } catch (e) {
+      debugPrint('Error loading matchmaking data: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  // Calculate Euclidean distance between two hex color codes
+  double _getColorDistance(String hex1, String hex2) {
+    try {
+      final r1 = int.parse(hex1.substring(1, 3), radix: 16);
+      final g1 = int.parse(hex1.substring(3, 5), radix: 16);
+      final b1 = int.parse(hex1.substring(5, 7), radix: 16);
+      
+      final r2 = int.parse(hex2.substring(1, 3), radix: 16);
+      final g2 = int.parse(hex2.substring(3, 5), radix: 16);
+      final b2 = int.parse(hex2.substring(5, 7), radix: 16);
+      
+      return ((r1 - r2) * (r1 - r2) + (g1 - g2) * (g1 - g2) + (b1 - b2) * (b1 - b2)).toDouble();
+    } catch (e) {
+      return 195075.0; // Max possible distance (white to black)
+    }
+  }
+
+  int _calculateMatchScore(double distSquared) {
+    // Max distance squared is 3 * 255^2 = 195075
+    // Scale so small distances yield high match percentages
+    final double score = 100.0 - (distSquared / 1500.0);
+    return score.clamp(0, 100).round();
+  }
+
+  Map<String, Map<String, dynamic>> _generateOutfitForOccasion(String occasion) {
+    if (_latestScan == null || _closetItems.isEmpty) return {};
+
+    final rec = _latestScan!.recommendation;
+    final palette = rec.palettes[occasion] ?? rec.palettes['casual']!;
+
+    // Categorize current closet items
+    final tops = _closetItems.where((i) => i.category == 'top').toList();
+    final bottoms = _closetItems.where((i) => i.category == 'bottom').toList();
+    final outers = _closetItems.where((i) => i.category == 'outer').toList();
+    final shoes = _closetItems.where((i) => i.category == 'shoes').toList();
+    final accessories = _closetItems.where((i) => i.category == 'accessory').toList();
+
+    // Matching functions
+    Map<String, dynamic>? findBestMatch(List<ClosetItem> items, String targetHex) {
+      if (items.isEmpty) return null;
+      ClosetItem bestItem = items.first;
+      double minDistance = double.infinity;
+
+      for (var item in items) {
+        final dist = _getColorDistance(item.hexColor, targetHex);
+        if (dist < minDistance) {
+          minDistance = dist;
+          bestItem = item;
+        }
+      }
+
+      final int score = _calculateMatchScore(minDistance);
+      return {'item': bestItem, 'score': score};
+    }
+
+    // Match categories:
+    // Tops matching primaryColor, Bottoms matching secondaryColor, etc.
+    return {
+      'top': findBestMatch(tops, palette.primaryColor) ?? {},
+      'bottom': findBestMatch(bottoms, palette.secondaryColor) ?? {},
+      'outer': findBestMatch(outers, palette.primaryColor) ?? {},
+      'shoes': findBestMatch(shoes, palette.secondaryColor) ?? {},
+      'accessory': findBestMatch(accessories, palette.accentColor) ?? {},
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Outfit Combinator'),
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.white,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          tabs: const [
+            Tab(text: 'Office Wear'),
+            Tab(text: 'Party Night'),
+            Tab(text: 'Casual Wear'),
+          ],
+        ),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Colors.deepPurple))
+          : _latestScan == null
+              ? _buildNoScanState()
+              : _closetItems.isEmpty
+                  ? _buildEmptyClosetState()
+                  : TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildOccasionMatchView('office'),
+                        _buildOccasionMatchView('party'),
+                        _buildOccasionMatchView('casual'),
+                      ],
+                    ),
+    );
+  }
+
+  Widget _buildNoScanState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.face_retouching_natural_rounded, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            const Text(
+              'No Personal Season Profile Found',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Please perform at least one selfie scan from the Home Screen to determine your season palette before matching clothes!',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[600], height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyClosetState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.checkroom_rounded, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            const Text(
+              'Your Closet is Empty',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Add clothes like tops, bottoms, and jackets to your closet first so we can suggest outfit combinations!',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[600], height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOccasionMatchView(String occasionKey) {
+    final outfitMap = _generateOutfitForOccasion(occasionKey);
+    final rec = _latestScan!.recommendation;
+    final palette = rec.palettes[occasionKey] ?? rec.palettes['casual']!;
+
+    // Match percentage averages
+    int totalItems = 0;
+    int totalScoreSum = 0;
+    outfitMap.forEach((key, val) {
+      if (val.containsKey('score')) {
+        totalItems++;
+        totalScoreSum += val['score'] as int;
+      }
+    });
+
+    final int averageMatchScore = totalItems > 0 ? (totalScoreSum / totalItems).round() : 0;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Season & Fit Summary Card
+          Card(
+            elevation: 0,
+            color: Colors.deepPurple.withOpacity(0.04),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: Colors.deepPurple.withOpacity(0.1)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Detected: ${rec.detectedCategory}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.deepPurple),
+                      ),
+                      if (averageMatchScore > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '$averageMatchScore% Closet Match',
+                            style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    palette.message,
+                    style: const TextStyle(fontSize: 13.5, color: Colors.black87, height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          const Text(
+            'Suggested Outfit Combinations',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54),
+          ),
+          const SizedBox(height: 16),
+
+          // Suggestion list
+          _buildGarmentSlot(
+            'Primary Layer / Tops',
+            outfitMap['top']?['item'] as ClosetItem?,
+            outfitMap['top']?['score'] as int?,
+            palette.primaryColor,
+          ),
+          const SizedBox(height: 16),
+          _buildGarmentSlot(
+            'Secondary Layer / Bottoms',
+            outfitMap['bottom']?['item'] as ClosetItem?,
+            outfitMap['bottom']?['score'] as int?,
+            palette.secondaryColor,
+          ),
+          const SizedBox(height: 16),
+          _buildGarmentSlot(
+            'Outerwear / Jackets',
+            outfitMap['outer']?['item'] as ClosetItem?,
+            outfitMap['outer']?['score'] as int?,
+            palette.primaryColor,
+          ),
+          const SizedBox(height: 16),
+          _buildGarmentSlot(
+            'Shoes',
+            outfitMap['shoes']?['item'] as ClosetItem?,
+            outfitMap['shoes']?['score'] as int?,
+            palette.secondaryColor,
+          ),
+          const SizedBox(height: 16),
+          _buildGarmentSlot(
+            'Accessory Accent',
+            outfitMap['accessory']?['item'] as ClosetItem?,
+            outfitMap['accessory']?['score'] as int?,
+            palette.accentColor,
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGarmentSlot(String roleLabel, ClosetItem? item, int? score, String targetColorHex) {
+    final targetColor = Color(int.parse(targetColorHex.replaceFirst('#', '0xFF')));
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14.0),
+        child: Row(
+          children: [
+            // Item photo or placeholder
+            if (item != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.file(
+                  File(item.imagePath),
+                  width: 75,
+                  height: 75,
+                  fit: BoxFit.cover,
+                ),
+              )
+            else
+              Container(
+                width: 75,
+                height: 75,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.inventory_2_outlined, color: Colors.grey[400]),
+              ),
+            const SizedBox(width: 16),
+
+            // Item Details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    roleLabel,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 6),
+                  if (item != null) ...[
+                    Text(
+                      item.colorName,
+                      style: const TextStyle(fontSize: 13, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Container(
+                          width: 14,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: Color(int.parse(item.hexColor.replaceFirst('#', '0xFF'))),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.grey.shade300, width: 0.5),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _getScoreColor(score ?? 0).withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '$score% Match',
+                            style: TextStyle(
+                              color: _getScoreColor(score ?? 0),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  ] else ...[
+                    Row(
+                      children: [
+                        const Text(
+                          'Target: ',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: targetColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.grey.shade300, width: 0.5),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          targetColorHex.toUpperCase(),
+                          style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'No matching items in closet.',
+                      style: TextStyle(fontSize: 12, color: Colors.redAccent, fontStyle: FontStyle.italic),
+                    ),
+                  ],
+                ],
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getScoreColor(int score) {
+    if (score >= 90) return Colors.green;
+    if (score >= 75) return Colors.orange;
+    return Colors.red;
+  }
+}

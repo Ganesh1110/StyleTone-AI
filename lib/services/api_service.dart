@@ -58,6 +58,37 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> analyzeClothingColor({
+    required File imageFile,
+  }) async {
+    try {
+      // 1. Resize image to 400x400 to reduce payload size
+      final resizedFile = await _resizeImage(imageFile, 400);
+
+      // 2. Convert to Base64
+      List<int> imageBytes = await resizedFile.readAsBytes();
+      String base64Image = base64Encode(imageBytes);
+
+      // 3. Build Payload
+      final payload = {
+        'image': 'data:image/jpeg;base64,$base64Image',
+      };
+
+      // 4. Send POST request
+      final response = await _dio.post('/analyze-clothing', data: payload);
+
+      if (response.statusCode == 200 && response.data is Map) {
+        return response.data;
+      } else {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error: $e');
+    }
+  }
+
   // Helper to resize image using the 'image' package
   Future<File> _resizeImage(File file, int maxSize) async {
     try {

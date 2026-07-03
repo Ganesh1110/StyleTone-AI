@@ -3,6 +3,9 @@ import os
 # Add the parent directory to path so we can import image_processor
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import base64
+import cv2
+import numpy as np
 from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,6 +35,9 @@ class ImageRequest(BaseModel):
 class DressUrlRequest(BaseModel):
     url: str
     occasion: str
+
+class ClothingRequest(BaseModel):
+    image: str
 
 # --- HELPER FUNCTIONS FOR COLOR MATH ---
 def hex_to_rgb(hex_code):
@@ -129,6 +135,97 @@ async def analyze_dress(request: DressUrlRequest):
             return {"error": "Could not find a product image on this page."}
     except Exception as e:
         return {"error": f"Scraping failed: {str(e)}"}
+
+
+# Color classification database
+COLORS = {
+    "Crimson Red": (220, 20, 60),
+    "Tomato Red": (255, 99, 71),
+    "Soft Pink": (255, 182, 193),
+    "Hot Pink": (255, 105, 180),
+    "Coral Orange": (255, 127, 80),
+    "Golden Yellow": (255, 215, 0),
+    "Mustard Yellow": (228, 178, 47),
+    "Olive Green": (128, 128, 0),
+    "Emerald Green": (80, 200, 120),
+    "Mint Green": (152, 255, 152),
+    "Forest Green": (34, 139, 34),
+    "Teal": (0, 128, 128),
+    "Sky Blue": (135, 206, 235),
+    "Royal Blue": (65, 105, 225),
+    "Navy Blue": (0, 0, 128),
+    "Lavender Purple": (230, 230, 250),
+    "Deep Purple": (128, 0, 128),
+    "Indigo": (75, 0, 130),
+    "Chocolate Brown": (139, 69, 19),
+    "Tan Brown": (210, 180, 140),
+    "Beige": (245, 245, 220),
+    "Cream White": (255, 253, 240),
+    "Pure White": (255, 255, 255),
+    "Light Gray": (211, 211, 211),
+    "Charcoal Gray": (64, 64, 64),
+    "Jet Black": (15, 15, 15),
+}
+
+def get_color_name(r, g, b):
+    closest_name = "Unknown Color"
+    min_dist = float('inf')
+    for name, rgb in COLORS.items():
+        dist = (r - rgb[0])**2 + (g - rgb[1])**2 + (b - rgb[2])**2
+        if dist < min_dist:
+            min_dist = dist
+            closest_name = name
+    return closest_name
+
+@app.post("/analyze-clothing")
+async def analyze_clothing(request: ClothingRequest):
+    if not request.image:
+        raise HTTPException(status_code=400, detail="No image provided")
+    
+    try:
+        # Strip base64 prefixes if present
+        img_data = request.image
+        if "," in img_data:
+            img_data = img_data.split(",")[1]
+            
+        img_bytes = base64.b64decode(img_data)
+        np_arr = np.frombuffer(img_bytes, np.uint8)
+        img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        
+        if img is None:
+            raise HTTPException(status_code=400, detail="Invalid image encoding")
+        
+        # Center crop the middle 60% of the image to focus on fabric color
+        h, w, _ = img.shape
+        cy, cx = h // 2, w // 2
+        dy, dx = int(h * 0.3), int(w * 0.3)
+        crop = img[cy - dy:cy + dy, cx - dx:cx + dx]
+        
+        # Reshape pixels and cast to float
+        pixels = crop.reshape(-1, 3)
+        pixels = np.float32(pixels)
+        
+        # Run K-Means clustering (K=1) to extract the single dominant color
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+        _, _, centers = cv2.kmeans(pixels, 1, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+        
+        # Extracted color channels (OpenCV defaults to BGR)
+        bgr = centers[0]
+        r, g, b = int(bgr[2]), int(bgr[1]), int(bgr[0])
+        
+        # Get matching hex string and color name
+        hex_color = '#{:02x}{:02x}{:02x}'.format(r, g, b)
+        color_name = get_color_name(r, g, b)
+        
+        return {
+            "hex_color": hex_color,
+            "rgb": [r, g, b],
+            "color_name": color_name
+        }
+        
+    except Exception as e:
+        print(f"Clothing color analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # --- HEALTH CHECK ---
 @app.get("/")

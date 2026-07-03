@@ -6,6 +6,8 @@ import 'camera_screen.dart';
 import 'preview_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
+import 'closet_screen.dart';
+import 'outfit_combinator_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -17,6 +19,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  int _currentIndex = 0;
   final String _selectedOccasion = 'casual';
 
   Future<void> _pickFromGallery() async {
@@ -41,6 +44,44 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final List<Widget> pages = [
+      _buildScannerTab(theme),
+      const ClosetScreen(),
+      const OutfitCombinatorScreen(),
+    ];
+
+    return Scaffold(
+      body: pages[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        selectedItemColor: Colors.deepPurple,
+        unselectedItemColor: Colors.grey,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+        unselectedLabelStyle: const TextStyle(fontSize: 11),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.face_retouching_natural_rounded),
+            label: 'Stylist Scan',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.checkroom_rounded),
+            label: 'My Closet',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.style_rounded),
+            label: 'Outfit Matcher',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScannerTab(ThemeData theme) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
