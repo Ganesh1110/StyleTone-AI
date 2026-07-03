@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../screens/result_screen.dart';
 
@@ -27,6 +28,7 @@ class _PreviewScreenState extends State<PreviewScreen>
   String _qualityMessage = 'Checking image quality...';
   IconData _qualityIcon = Icons.hourglass_empty;
   Color _qualityColor = Colors.orange;
+  Rect? _faceRect; // bounding box of the detected face (image coordinates)
 
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
@@ -61,25 +63,29 @@ class _PreviewScreenState extends State<PreviewScreen>
         return;
       }
 
-      // Dynamically run face detection if not pre-computed (e.g. from gallery pick)
+      // Run face detection to get bounding box (always run, even if pre-computed)
+      final faceDetector = FaceDetector(
+        options: FaceDetectorOptions(
+          enableClassification: false,
+          enableTracking: false,
+          minFaceSize: 0.15,
+        ),
+      );
       bool faceDetected = widget.faceDetected;
-      if (!faceDetected) {
-        final faceDetector = FaceDetector(
-          options: FaceDetectorOptions(
-            enableClassification: false,
-            enableTracking: false,
-            minFaceSize: 0.15,
-          ),
-        );
-        try {
-          final inputImage = InputImage.fromFile(widget.imageFile);
-          final faces = await faceDetector.processImage(inputImage);
-          faceDetected = faces.isNotEmpty;
-        } catch (e) {
-          debugPrint('Dynamic face detection failed: $e');
-        } finally {
-          await faceDetector.close();
+      try {
+        final inputImage = InputImage.fromFile(widget.imageFile);
+        final faces = await faceDetector.processImage(inputImage);
+        if (faces.isNotEmpty) {
+          faceDetected = true;
+          _faceRect = faces.first.boundingBox;
+        } else {
+          faceDetected = false;
+          _faceRect = null;
         }
+      } catch (e) {
+        debugPrint('Dynamic face detection failed: $e');
+      } finally {
+        await faceDetector.close();
       }
 
       // Check average brightness
@@ -148,12 +154,42 @@ class _PreviewScreenState extends State<PreviewScreen>
     _animController.forward();
   }
 
-  void _proceedToResult() {
+  Future<void> _proceedToResult() async {
+    File imageFile = widget.imageFile;
+
+    // Crop to face region if detected (more reliable than backend Haar cascade)
+    if (_faceRect != null) {
+      try {
+        final bytes = await imageFile.readAsBytes();
+        final decoded = img.decodeImage(bytes);
+        if (decoded != null) {
+          final r = _faceRect!;
+          final padX = (r.width * 0.3).toInt();
+          final padY = (r.height * 0.3).toInt();
+          int x = (r.left - padX).clamp(0, decoded.width - 1).toInt();
+          int y = (r.top - padY).clamp(0, decoded.height - 1).toInt();
+          int w = (r.width + padX * 2).clamp(1, decoded.width - x).toInt();
+          int h = (r.height + padY * 2).clamp(1, decoded.height - y).toInt();
+
+          final cropped = img.copyCrop(decoded, x: x, y: y, width: w, height: h);
+          final croppedBytes = img.encodeJpg(cropped, quality: 90);
+
+          final tempDir = await getTemporaryDirectory();
+          final croppedFile = File('${tempDir.path}/face_crop.jpg');
+          await croppedFile.writeAsBytes(croppedBytes);
+          imageFile = croppedFile;
+        }
+      } catch (e) {
+        debugPrint('Face crop failed, using original: $e');
+      }
+    }
+
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (_) => ResultScreen(
-          imageFile: widget.imageFile,
+          imageFile: imageFile,
           occasion: widget.occasion,
         ),
       ),

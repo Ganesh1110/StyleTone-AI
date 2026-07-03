@@ -70,7 +70,8 @@ def _detect_face(img):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(gray, 1.1, 5, minSize=(80, 80))
     if len(faces) == 0:
-        return None
+        logger.warning("No faces detected by Haar cascade; falling back to full image")
+        return img
     (x, y, w, h) = max(faces, key=lambda f: f[2] * f[3])
     pad = int(0.3 * max(w, h))
     x = max(0, x - pad)
