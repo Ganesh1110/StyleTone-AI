@@ -10,7 +10,23 @@ class AppTheme {
   static const Color textPrimary = Colors.white;
   static const Color textSecondary = Color(0xFFA0A0A5);
 
+  // Ocean Theme Colors
+  static const Color oceanPrimary = Color(0xFF0066CC);
+  static const Color oceanSecondary = Color(0xFF00BCD4);
+
+  // Forest Theme Colors
+  static const Color forestPrimary = Color(0xFF2E7D32);
+  static const Color forestSecondary = Color(0xFFFF8F00);
+
   // Gradient definitions
+  static LinearGradient primaryGradientFor(Color p, Color s) {
+    return LinearGradient(
+      colors: [p, s],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+  }
+
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [Color(0xFF8A2387), Color(0xFFE94057)],
     begin: Alignment.topLeft,
@@ -23,16 +39,29 @@ class AppTheme {
     end: Alignment.bottomRight,
   );
 
-  static ThemeData get darkTheme {
+  static Color hexToColor(String hex) {
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    return Color(int.parse(hex, radix: 16));
+  }
+
+  static ThemeData _buildThemeData({
+    required Color primary,
+    required Color secondary,
+    Color? background,
+    Color? surface,
+  }) {
+    final bg = background ?? AppTheme.background;
+    final sf = surface ?? AppTheme.surface;
     return ThemeData(
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: background,
+      scaffoldBackgroundColor: bg,
       primaryColor: primary,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: ColorScheme.dark(
         primary: primary,
         secondary: secondary,
-        surface: surface,
-        background: background,
+        surface: sf,
+        background: bg,
       ),
       textTheme: TextTheme(
         displayLarge: GoogleFonts.playfairDisplay(
@@ -110,5 +139,37 @@ class AppTheme {
         ),
       ),
     );
+  }
+
+  static ThemeData get darkTheme {
+    return _buildThemeData(primary: primary, secondary: secondary);
+  }
+
+  static ThemeData get oceanTheme {
+    return _buildThemeData(primary: oceanPrimary, secondary: oceanSecondary);
+  }
+
+  static ThemeData get forestTheme {
+    return _buildThemeData(primary: forestPrimary, secondary: forestSecondary);
+  }
+
+  static ThemeData getThemeByName(
+    String name, {
+    Color? customPrimary,
+    Color? customSecondary,
+  }) {
+    switch (name) {
+      case 'ocean':
+        return oceanTheme;
+      case 'forest':
+        return forestTheme;
+      case 'custom':
+        return _buildThemeData(
+          primary: customPrimary ?? primary,
+          secondary: customSecondary ?? secondary,
+        );
+      default:
+        return darkTheme;
+    }
   }
 }

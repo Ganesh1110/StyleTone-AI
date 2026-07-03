@@ -174,10 +174,8 @@ class _ResultScreenState extends State<ResultScreen> {
   Future<void> _speakRecommendation({bool auto = false}) async {
     if (_recommendation == null) return;
 
-    if (auto) {
-      final profile = await ProfileService().getProfile();
-      if (profile.muteVoiceOutput) return;
-    }
+    final profile = await ProfileService().getProfile();
+    if (profile.muteVoiceOutput) return;
 
     if (_tts.isInitialized) {
       final message = _buildSpeechMessage();
