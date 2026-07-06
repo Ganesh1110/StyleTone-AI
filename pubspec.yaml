@@ -1,5 +1,5 @@
-name: make_tone
-description: "A new Flutter project."
+name: style_tone_ai
+description: "StyleTone AI - AI-powered style and tone analyzer"
 publish_to: "none"
 version: 4.0.0+4
 
