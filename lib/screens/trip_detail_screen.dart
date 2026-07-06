@@ -261,7 +261,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                                   child: Stack(
                                     fit: StackFit.expand,
                                     children: [
-                                      Image.file(File(item.imagePath), fit: BoxFit.cover),
+                                      Image.file(File(item.imagePath), fit: BoxFit.cover, cacheWidth: 200),
                                       if (isPacked)
                                         Container(
                                           color: Colors.green.withOpacity(0.2),

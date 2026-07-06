@@ -448,7 +448,7 @@ class _VirtualTryOnScreenState extends State<VirtualTryOnScreen>
                         child: Column(
                           children: [
                             Expanded(
-                              child: Image.file(File(item.imagePath), fit: BoxFit.cover),
+                              child: Image.file(File(item.imagePath), fit: BoxFit.cover, cacheWidth: 150),
                             ),
                             Container(
                               padding: EdgeInsets.all(4),

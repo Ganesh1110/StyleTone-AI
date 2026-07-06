@@ -239,6 +239,7 @@ class _ClosetScreenState extends State<ClosetScreen>
                           width: 100,
                           height: 100,
                           fit: BoxFit.cover,
+                          cacheWidth: 200,
                         ),
                       ),
                       const SizedBox(width: 20),
@@ -539,7 +540,7 @@ class _ClosetScreenState extends State<ClosetScreen>
                   children: [
                     ClipRRect(
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                      child: Image.file(file, fit: BoxFit.cover),
+                      child: Image.file(file, fit: BoxFit.cover, cacheWidth: 300),
                     ),
                     Positioned(
                       top: 8,

@@ -193,6 +193,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           width: 64,
                           height: 64,
                           fit: BoxFit.cover,
+                          cacheWidth: 150,
                           errorBuilder: (ctx, err, stack) => Container(
                             width: 64,
                             height: 64,

@@ -319,6 +319,7 @@ class _StyleTimelineScreenState extends State<StyleTimelineScreen> {
                           width: 48,
                           height: 48,
                           fit: BoxFit.cover,
+                          cacheWidth: 100,
                           errorBuilder: (_, __, ___) => SizedBox(width: 48, height: 48),
                         ),
                       ),
