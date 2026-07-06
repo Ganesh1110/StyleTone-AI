@@ -325,7 +325,6 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Live Color Matcher'),
-        backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
       ),
       body: !_isCameraInitialized

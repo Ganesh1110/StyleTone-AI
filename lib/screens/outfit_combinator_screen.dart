@@ -137,7 +137,6 @@ class _OutfitCombinatorScreenState extends State<OutfitCombinatorScreen> with Si
     return Scaffold(
       appBar: AppBar(
         title: const Text('Outfit Combinator'),
-        backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,

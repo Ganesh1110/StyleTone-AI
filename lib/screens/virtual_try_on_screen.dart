@@ -223,11 +223,7 @@ class _VirtualTryOnScreenState extends State<VirtualTryOnScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Virtual Try-On',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-        backgroundColor: Colors.deepPurple,
+        title: const Text('Virtual Try-On'),
         foregroundColor: Colors.white,
         actions: [
           IconButton(

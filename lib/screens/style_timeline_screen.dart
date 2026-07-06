@@ -147,9 +147,8 @@ class _StyleTimelineScreenState extends State<StyleTimelineScreen> {
       appBar: AppBar(
         title: Text(
           _showRewind ? 'Style Rewind' : 'Style Evolution',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
         actions: [
           IconButton(

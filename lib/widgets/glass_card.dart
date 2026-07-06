@@ -15,7 +15,7 @@ class GlassCard extends StatelessWidget {
     super.key,
     required this.child,
     this.blur = 10.0,
-    this.opacity = 0.15,
+    this.opacity = 0.18,
     this.borderRadius,
     this.padding,
     this.margin,

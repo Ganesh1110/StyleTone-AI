@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_constants.dart';
 import 'profile_service.dart';
 
 class ThemeService {
@@ -8,8 +9,16 @@ class ThemeService {
 
   static Future<void> loadTheme() async {
     final profile = await ProfileService().getProfile();
+
+    final themeName = ThemeConstants.migrateOldTheme(profile.themeName);
+
+    if (themeName != profile.themeName) {
+      final updated = profile.copyWith(themeName: themeName);
+      await ProfileService().saveProfile(updated);
+    }
+
     notifier.value = AppTheme.getThemeByName(
-      profile.themeName,
+      themeName,
       customPrimary: profile.customPrimaryColor != null
           ? AppTheme.hexToColor(profile.customPrimaryColor!)
           : null,
@@ -18,4 +27,21 @@ class ThemeService {
           : null,
     );
   }
+
+  static Future<void> applyTheme(String themeName) async {
+    final profile = await ProfileService().getProfile();
+    final updated = profile.copyWith(
+      themeName: themeName,
+      customPrimaryColor: null,
+      customSecondaryColor: null,
+    );
+    await ProfileService().saveProfile(updated);
+    await loadTheme();
+  }
+
+  static String? themeForSeason(String season) =>
+      ThemeConstants.themeForSeason(season);
+
+  static String? getRecommendedTheme(String season) =>
+      ThemeConstants.themeForSeason(season);
 }

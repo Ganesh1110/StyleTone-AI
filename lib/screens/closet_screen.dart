@@ -425,8 +425,6 @@ class _ClosetScreenState extends State<ClosetScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Closet'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
         actions: [
           Tooltip(
             message: 'Smart Shop — Check a New Item',

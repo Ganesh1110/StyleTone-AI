@@ -13,8 +13,11 @@ import '../services/api_service.dart';
 import '../services/tts_service.dart';
 import '../services/history_service.dart';
 import '../services/profile_service.dart';
+import '../services/theme_service.dart';
+import '../models/user_profile.dart';
 import '../models/color_recommendation.dart';
 import '../widgets/glass_card.dart';
+import '../theme/theme_constants.dart';
 import 'self_analysis_screen.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -361,8 +364,6 @@ class _ResultScreenState extends State<ResultScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Your Style Report'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
         actions: [
           if (_recommendation != null)
             IconButton(
@@ -443,7 +444,7 @@ class _ResultScreenState extends State<ResultScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const SpinKitFadingCube(color: Colors.deepPurple, size: 50.0),
+          SpinKitFadingCube(color: Theme.of(context).colorScheme.primary, size: 50.0),
           const SizedBox(height: 32),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
@@ -497,7 +498,7 @@ class _ResultScreenState extends State<ResultScreen>
             icon: const Icon(Icons.refresh),
             label: const Text('Try Again'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepPurple,
+              backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Colors.white,
             ),
           ),
@@ -513,7 +514,9 @@ class _ResultScreenState extends State<ResultScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildHeaderSection(rec),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
+        _buildThemeSuggestion(rec),
+        const SizedBox(height: 16),
 
         // Occasion Pages
         Expanded(
@@ -527,6 +530,125 @@ class _ResultScreenState extends State<ResultScreen>
           ),
         ),
       ],
+    );
+  }
+
+  String _extractBaseSeason(String detectedCategory) {
+    final lower = detectedCategory.toLowerCase();
+    if (lower.contains('spring')) return 'spring';
+    if (lower.contains('summer')) return 'summer';
+    if (lower.contains('autumn')) return 'autumn';
+    if (lower.contains('winter')) return 'winter';
+    return '';
+  }
+
+  Widget _buildThemeSuggestion(ColorRecommendation rec) {
+    final season = _extractBaseSeason(rec.detectedCategory);
+    if (season.isEmpty) return const SizedBox.shrink();
+
+    final themeId = ThemeConstants.themeForSeason(season);
+    if (themeId == null) return const SizedBox.shrink();
+
+    final themeConfig = ThemeConstants.getTheme(themeId);
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return FutureBuilder<UserProfile>(
+      future: ProfileService().getProfile(),
+      builder: (context, snapshot) {
+        if (snapshot.data?.themeSuggestionDismissed == true) {
+          return const SizedBox.shrink();
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: GlassCard(
+            margin: EdgeInsets.zero,
+            color: themeConfig.primary.withOpacity(0.08),
+            padding: const EdgeInsets.all(14),
+            border: Border.all(color: themeConfig.primary.withOpacity(0.3)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [themeConfig.primary, themeConfig.secondary],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Try the ${themeConfig.label} theme',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: theme.textTheme.bodyLarge?.color ?? Colors.white,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, size: 16, color: theme.textTheme.bodyMedium?.color ?? Colors.white60),
+                      onPressed: () async {
+                        final profile = await ProfileService().getProfile();
+                        final updated = profile.copyWith(
+                          themeSuggestionDismissed: true,
+                        );
+                        await ProfileService().saveProfile(updated);
+                        setState(() {});
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${season.substring(0, 1).toUpperCase()}${season.substring(1)} — ${themeConfig.description}',
+                  style: TextStyle(fontSize: 12, color: theme.textTheme.bodyMedium?.color ?? Colors.white60),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () async {
+                      await ThemeService.applyTheme(themeId);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('${themeConfig.label} theme applied!'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    },
+                    style: TextButton.styleFrom(
+                      backgroundColor: themeConfig.primary.withOpacity(0.15),
+                      foregroundColor: themeConfig.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    child: const Text(
+                      'Apply Theme',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -922,8 +1044,8 @@ class _ReadyToWearBlueprintSheetState
                 indicator: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Colors.deepPurple.shade600,
-                      Colors.indigo.shade500,
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.primary.withOpacity(0.7),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(10),
@@ -984,10 +1106,10 @@ class _ReadyToWearBlueprintSheetState
               onPressed: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
+                  SnackBar(
+                    content: const Text(
                         '🛍️ Shop the Look — retail partners coming soon!'),
-                    backgroundColor: Colors.deepPurple,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
@@ -1002,7 +1124,7 @@ class _ReadyToWearBlueprintSheetState
                     fontSize: 15),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
                 elevation: 6,
@@ -1021,12 +1143,12 @@ class _ReadyToWearBlueprintSheetState
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: slot.isKeyPiece
-            ? Colors.deepPurple.withOpacity(0.18)
+            ? Theme.of(context).colorScheme.primary.withOpacity(0.18)
             : Colors.white.withOpacity(0.04),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: slot.isKeyPiece
-              ? Colors.deepPurple.withOpacity(0.45)
+              ? Theme.of(context).colorScheme.primary.withOpacity(0.45)
               : Colors.white.withOpacity(0.07),
         ),
       ),
@@ -1095,8 +1217,8 @@ class _ReadyToWearBlueprintSheetState
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Colors.deepPurple.shade400,
-                    Colors.purple.shade600
+                    Theme.of(context).colorScheme.primary,
+                    Theme.of(context).colorScheme.primary.withOpacity(0.7),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(8),

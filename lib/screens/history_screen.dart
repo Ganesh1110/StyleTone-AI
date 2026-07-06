@@ -53,7 +53,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Analysis History'),
-        backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
         actions: [
           if (_historyList != null && _historyList!.isNotEmpty)

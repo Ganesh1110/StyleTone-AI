@@ -48,9 +48,7 @@ class _TripModeScreenState extends State<TripModeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Trip Packing', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+        title: const Text('Trip Packing'),
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: Colors.deepPurple))

@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'home_screen.dart';
 import '../widgets/glass_card.dart';
+import '../theme/theme_constants.dart';
 import '../theme/app_theme.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -78,9 +79,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           // Background Color/Gradient
           Positioned.fill(
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppTheme.background, Color(0xFF2A2A35)],
+                  colors: [ThemeConstants.defaultTheme.background, const Color(0xFF2A2A35)],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -181,7 +182,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(4.0),
                         color: _currentPage == index
-                            ? AppTheme.secondary
+                            ? ThemeConstants.defaultTheme.secondary
                             : Colors.white24,
                       ),
                     ),
@@ -220,7 +221,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.secondary,
+                        backgroundColor: ThemeConstants.defaultTheme.secondary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 32,
@@ -230,7 +231,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                         elevation: 10,
-                        shadowColor: AppTheme.secondary.withOpacity(0.5),
+                        shadowColor: ThemeConstants.defaultTheme.secondary.withOpacity(0.5),
                       ),
                       child: Text(
                         _currentPage == _pages.length - 1

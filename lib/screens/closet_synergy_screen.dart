@@ -103,13 +103,7 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A18),
       appBar: AppBar(
-        title: const Text(
-          'Smart Shop Synergy',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: const Color(0xFF1A1040),
-        foregroundColor: Colors.white,
-        elevation: 0,
+        title: const Text('Smart Shop Synergy'),
         actions: [
           if (_result != null)
             IconButton(

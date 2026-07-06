@@ -252,7 +252,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0C091A),
+      backgroundColor: const Color(0xFF130D2E),
       appBar: AppBar(
         title: const Text('Self-Analysis Palette Picker'),
         backgroundColor: const Color(0xFF130D2E),
