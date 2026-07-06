@@ -15,7 +15,7 @@ import '../services/history_service.dart';
 import '../services/profile_service.dart';
 import '../models/color_recommendation.dart';
 import '../widgets/glass_card.dart';
-import 'virtual_try_on_screen.dart';
+import 'self_analysis_screen.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class ResultScreen extends StatefulWidget {
@@ -366,18 +366,23 @@ class _ResultScreenState extends State<ResultScreen>
         actions: [
           if (_recommendation != null)
             IconButton(
-              icon: const Icon(Icons.touch_app_rounded),
-              tooltip: 'Virtual Try-On',
-              onPressed: () {
-                Navigator.push(
+              icon: const Icon(Icons.palette_rounded),
+              tooltip: 'Self-Analysis',
+              onPressed: () async {
+                final updatedRec = await Navigator.push<ColorRecommendation?>(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => VirtualTryOnScreen(
+                    builder: (_) => SelfAnalysisScreen(
                       selfieFile: widget.imageFile,
                       recommendation: _recommendation!,
                     ),
                   ),
                 );
+                if (updatedRec != null && mounted) {
+                  setState(() {
+                    _recommendation = updatedRec;
+                  });
+                }
               },
             ),
           if (_recommendation != null)
