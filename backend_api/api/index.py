@@ -6,7 +6,7 @@ import base64
 import logging
 import re
 import ipaddress
-from typing import Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 import cv2
@@ -17,7 +17,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from image_processor import process_selfie, hex_to_rgb, rgb_to_hex
+from image_processor import (
+    compute_synergy,
+    get_color_name,
+    hex_to_rgb,
+    process_selfie,
+    rgb_to_hex,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +57,12 @@ class ClothingRequest(BaseModel):
     image: str
 
 
+class SynergyRequest(BaseModel):
+    image: str
+    season: str = "Spring Season"
+    closet_items: List[Dict[str, Any]] = []
+
+
 # --- SSRF SAFETY ---
 def _is_safe_url(url: str) -> bool:
     try:
@@ -74,46 +86,7 @@ def _is_safe_url(url: str) -> bool:
         return False
 
 
-# Color classification database
-COLORS = {
-    "Crimson Red": (220, 20, 60),
-    "Tomato Red": (255, 99, 71),
-    "Soft Pink": (255, 182, 193),
-    "Hot Pink": (255, 105, 180),
-    "Coral Orange": (255, 127, 80),
-    "Golden Yellow": (255, 215, 0),
-    "Mustard Yellow": (228, 178, 47),
-    "Olive Green": (128, 128, 0),
-    "Emerald Green": (80, 200, 120),
-    "Mint Green": (152, 255, 152),
-    "Forest Green": (34, 139, 34),
-    "Teal": (0, 128, 128),
-    "Sky Blue": (135, 206, 235),
-    "Royal Blue": (65, 105, 225),
-    "Navy Blue": (0, 0, 128),
-    "Lavender Purple": (230, 230, 250),
-    "Deep Purple": (128, 0, 128),
-    "Indigo": (75, 0, 130),
-    "Chocolate Brown": (139, 69, 19),
-    "Tan Brown": (210, 180, 140),
-    "Beige": (245, 245, 220),
-    "Cream White": (255, 253, 240),
-    "Pure White": (255, 255, 255),
-    "Light Gray": (211, 211, 211),
-    "Charcoal Gray": (64, 64, 64),
-    "Jet Black": (15, 15, 15),
-}
-
-
-def get_color_name(r, g, b):
-    closest_name = "Unknown Color"
-    min_dist = float('inf')
-    for name, rgb in COLORS.items():
-        dist = (r - rgb[0]) ** 2 + (g - rgb[1]) ** 2 + (b - rgb[2]) ** 2
-        if dist < min_dist:
-            min_dist = dist
-            closest_name = name
-    return closest_name
+# get_color_name and COLORS are now defined in image_processor.py and imported above.
 
 
 @app.post("/recommend")
@@ -257,6 +230,69 @@ async def analyze_clothing(request: ClothingRequest):
         raise
     except Exception as e:
         logger.error("Clothing color analysis failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/analyze-synergy")
+async def analyze_synergy(request: SynergyRequest):
+    """Extract the dominant colour of a new garment then compute its closet
+    synergy score against the user's active seasonal palette and wardrobe."""
+    if not request.image:
+        raise HTTPException(status_code=400, detail="No image provided")
+    if len(request.image) > MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=400, detail="Image too large (max 10 MB)")
+
+    try:
+        img_data = request.image
+        if "," in img_data:
+            img_data = img_data.split(",")[1]
+
+        img_bytes = base64.b64decode(img_data)
+        np_arr = np.frombuffer(img_bytes, np.uint8)
+        img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        if img is None:
+            raise HTTPException(status_code=400, detail="Invalid image encoding")
+
+        # --- K-Means dominant colour extraction (same as /analyze-clothing) ---
+        h, w, _ = img.shape
+        cy, cx = h // 2, w // 2
+        dy, dx = int(h * 0.3), int(w * 0.3)
+        crop = img[cy - dy:cy + dy, cx - dx:cx + dx]
+
+        pixels = crop.reshape(-1, 3).astype(np.float32)
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+        _, labels, centers = cv2.kmeans(
+            pixels, 3, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS
+        )
+        _, counts = np.unique(labels, return_counts=True)
+        sorted_idx = np.argsort(-counts)
+
+        selected_bgr = None
+        for idx in sorted_idx:
+            bgr = centers[idx]
+            b, g, r = int(bgr[0]), int(bgr[1]), int(bgr[2])
+            is_white = r > 220 and g > 220 and b > 220 and max(r, g, b) - min(r, g, b) < 20
+            is_black = r < 45 and g < 45 and b < 45
+            if not is_white and not is_black:
+                selected_bgr = bgr
+                break
+        if selected_bgr is None:
+            selected_bgr = centers[sorted_idx[0]]
+
+        r, g, b = int(selected_bgr[2]), int(selected_bgr[1]), int(selected_bgr[0])
+        new_hex = '#{:02x}{:02x}{:02x}'.format(r, g, b)
+        color_name = get_color_name(r, g, b)
+
+        # --- Compute synergy against palette + wardrobe ----------------------
+        synergy = compute_synergy(new_hex, request.season, request.closet_items)
+        synergy["new_item_color_name"] = color_name
+
+        return synergy
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Synergy analysis failed: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

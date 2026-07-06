@@ -356,3 +356,176 @@ def process_selfie(base64_image: str, gender: str = "neutral"):
     except Exception as e:
         logger.error("Critical error in process_selfie: %s", e, exc_info=True)
         raise
+
+
+# ---------------------------------------------------------------------------
+# Color classification helpers (shared with index.py via import)
+# ---------------------------------------------------------------------------
+
+COLORS = {
+    "Crimson Red": (220, 20, 60),
+    "Tomato Red": (255, 99, 71),
+    "Soft Pink": (255, 182, 193),
+    "Hot Pink": (255, 105, 180),
+    "Coral Orange": (255, 127, 80),
+    "Golden Yellow": (255, 215, 0),
+    "Mustard Yellow": (228, 178, 47),
+    "Olive Green": (128, 128, 0),
+    "Emerald Green": (80, 200, 120),
+    "Mint Green": (152, 255, 152),
+    "Forest Green": (34, 139, 34),
+    "Teal": (0, 128, 128),
+    "Sky Blue": (135, 206, 235),
+    "Royal Blue": (65, 105, 225),
+    "Navy Blue": (0, 0, 128),
+    "Lavender Purple": (230, 230, 250),
+    "Deep Purple": (128, 0, 128),
+    "Indigo": (75, 0, 130),
+    "Chocolate Brown": (139, 69, 19),
+    "Tan Brown": (210, 180, 140),
+    "Beige": (245, 245, 220),
+    "Cream White": (255, 253, 240),
+    "Pure White": (255, 255, 255),
+    "Light Gray": (211, 211, 211),
+    "Charcoal Gray": (64, 64, 64),
+    "Jet Black": (15, 15, 15),
+}
+
+
+def get_color_name(r: int, g: int, b: int) -> str:
+    """Return the nearest named color for an RGB triplet."""
+    closest = "Unknown Color"
+    min_dist = float("inf")
+    for name, rgb in COLORS.items():
+        dist = (r - rgb[0]) ** 2 + (g - rgb[1]) ** 2 + (b - rgb[2]) ** 2
+        if dist < min_dist:
+            min_dist = dist
+            closest = name
+    return closest
+
+
+# ---------------------------------------------------------------------------
+# Closet Synergy Engine
+# ---------------------------------------------------------------------------
+
+_MAX_DIST = 441.67  # sqrt(255^2 * 3) — max possible RGB Euclidean distance
+
+_CATEGORY_LABELS = {
+    "top": "Top / Shirt",
+    "bottom": "Bottom / Pants",
+    "outer": "Outerwear / Jacket",
+    "shoes": "Shoes",
+    "accessory": "Accessories",
+}
+
+
+def compute_synergy(new_hex: str, season: str, closet_items: list) -> dict:
+    """
+    Compute a Closet Synergy Score for a new garment.
+
+    Args:
+        new_hex:      HEX color of the new garment (e.g. '#4a90d9').
+        season:       Active seasonal category string (e.g. 'Spring Season').
+        closet_items: List of dicts with keys: category, hex_color, color_name.
+
+    Returns a dict with:
+        synergy_score          — 0-100 integer
+        new_item_hex           — echo of new_hex
+        matched_palette_colors — palette colors within close range
+        new_combos_count       — number of valid outfit pairs found
+        new_combos             — list of combo dicts (max 8)
+        gap_fillers            — missing category recommendations
+    """
+    # Resolve season key: "Spring Season" → "Spring"
+    season_key = season.replace(" Season", "").strip()
+    if season_key not in SEASON_PALETTES:
+        season_key = "Spring"
+
+    palette = SEASON_PALETTES[season_key]
+
+    # Collect unique palette hex codes across all occasions
+    all_palette_hexes: set[str] = set()
+    for occ in ("office", "party", "casual"):
+        all_palette_hexes.update(palette.get(occ, []))
+
+    new_r, new_g, new_b = hex_to_rgb(new_hex)
+
+    # ── Synergy score: distance to closest palette color ─────────────────────
+    min_palette_dist = float("inf")
+    matched_colors: list[str] = []
+
+    for ph in all_palette_hexes:
+        pr, pg, pb = hex_to_rgb(ph)
+        dist = ((new_r - pr) ** 2 + (new_g - pg) ** 2 + (new_b - pb) ** 2) ** 0.5
+        if dist < min_palette_dist:
+            min_palette_dist = dist
+        if dist < 120:
+            matched_colors.append(ph)
+
+    synergy_score = max(0, min(100, int((1 - min_palette_dist / _MAX_DIST) * 100)))
+
+    # ── Outfit combos with existing closet items ─────────────────────────────
+    new_combos: list[dict] = []
+    for item in closet_items:
+        item_hex = item.get("hex_color", "#FFFFFF")
+        ir, ig, ib = hex_to_rgb(item_hex)
+        dist = ((new_r - ir) ** 2 + (new_g - ig) ** 2 + (new_b - ib) ** 2) ** 0.5
+
+        is_analogous = dist < 100          # harmonious, close hues
+        is_complementary = 180 < dist < 330  # high contrast pairing
+
+        if (is_analogous or is_complementary):
+            match_score = max(0, min(100, int((1 - dist / _MAX_DIST) * 100)))
+            if match_score > 35:
+                new_combos.append({
+                    "new_item_hex": new_hex,
+                    "existing_item_hex": item_hex,
+                    "existing_item_name": item.get("color_name", "Unknown"),
+                    "existing_category": item.get("category", ""),
+                    "match_score": match_score,
+                    "combo_type": "Analogous" if is_analogous else "Contrasting",
+                })
+
+    new_combos.sort(key=lambda x: x["match_score"], reverse=True)
+
+    # ── Gap-filler recommendations for missing categories ────────────────────
+    present = {item.get("category", "") for item in closet_items}
+    all_cats = ["top", "bottom", "outer", "shoes", "accessory"]
+
+    casual_pal = palette.get("casual", ["#CCCCCC", "#AAAAAA", "#888888"])
+    office_pal = palette.get("office", ["#CCCCCC", "#AAAAAA", "#888888"])
+
+    cat_color_map = {
+        "top":       casual_pal[0] if len(casual_pal) > 0 else "#CCCCCC",
+        "bottom":    office_pal[1] if len(office_pal) > 1 else "#AAAAAA",
+        "outer":     office_pal[0] if len(office_pal) > 0 else "#CCCCCC",
+        "shoes":     casual_pal[2] if len(casual_pal) > 2 else "#888888",
+        "accessory": casual_pal[2] if len(casual_pal) > 2 else "#888888",
+    }
+
+    gap_fillers: list[dict] = []
+    for cat in all_cats:
+        if cat not in present:
+            rec_hex = cat_color_map.get(cat, "#CCCCCC")
+            rr, rg, rb = hex_to_rgb(rec_hex)
+            rec_name = get_color_name(rr, rg, rb)
+            cat_label = _CATEGORY_LABELS.get(cat, cat)
+            gap_fillers.append({
+                "category": cat,
+                "category_label": cat_label,
+                "recommended_hex": rec_hex,
+                "recommended_color_name": rec_name,
+                "reason": (
+                    f"Adding a {rec_name} {cat_label.lower()} in your "
+                    f"{season_key} palette would unlock more complete outfit combinations."
+                ),
+            })
+
+    return {
+        "synergy_score": synergy_score,
+        "new_item_hex": new_hex,
+        "matched_palette_colors": matched_colors[:3],
+        "new_combos_count": len(new_combos),
+        "new_combos": new_combos[:8],
+        "gap_fillers": gap_fillers,
+    }

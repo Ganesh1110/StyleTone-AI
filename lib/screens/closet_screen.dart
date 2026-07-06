@@ -10,6 +10,7 @@ import '../services/api_service.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/skeleton_loader.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'closet_synergy_screen.dart';
 
 class ClosetScreen extends StatefulWidget {
   const ClosetScreen({super.key});
@@ -425,6 +426,21 @@ class _ClosetScreenState extends State<ClosetScreen>
         title: const Text('My Closet'),
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
+        actions: [
+          Tooltip(
+            message: 'Smart Shop — Check a New Item',
+            child: IconButton(
+              icon: const Icon(Icons.add_shopping_cart_rounded,
+                  color: Colors.white),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ClosetSynergyScreen(),
+                ),
+              ),
+            ),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -435,7 +451,8 @@ class _ClosetScreenState extends State<ClosetScreen>
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
+          unselectedLabelStyle:
+              const TextStyle(fontWeight: FontWeight.normal),
           tabs: _categories.map((cat) => Tab(text: cat['label'])).toList(),
         ),
       ),

@@ -6,6 +6,7 @@ import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'profile_service.dart';
+import '../models/closet_item.dart';
 
 class ApiService {
   // CHANGE THIS TO YOUR DEPLOYED PYTHON BACKEND URL
@@ -97,6 +98,58 @@ class ApiService {
         throw Exception(detail);
       }
       throw Exception('Network error. Please check your connection and try again.');
+    } catch (e) {
+      throw Exception('Unexpected error: $e');
+    }
+  }
+
+  /// Analyse a new garment image, compute its Closet Synergy Score against
+  /// the user's active seasonal palette and existing wardrobe items, and
+  /// return gap-filler recommendations for missing categories.
+  Future<Map<String, dynamic>> analyzeGarmentSynergy({
+    required File imageFile,
+    required String activeSeason,
+    required List<ClosetItem> closetItems,
+  }) async {
+    try {
+      // 1. Resize the garment image
+      final resizedFile = await _resizeImage(imageFile, 400);
+
+      // 2. Encode to Base64
+      final imageBytes = await resizedFile.readAsBytes();
+      final base64Image = base64Encode(imageBytes);
+
+      // 3. Build payload
+      final payload = {
+        'image': 'data:image/jpeg;base64,$base64Image',
+        'season': activeSeason,
+        'closet_items': closetItems
+            .map((item) => {
+                  'category': item.category,
+                  'hex_color': item.hexColor,
+                  'color_name': item.colorName,
+                })
+            .toList(),
+      };
+
+      // 4. POST to /analyze-synergy
+      final response = await _dio.post('/analyze-synergy', data: payload);
+
+      if (response.statusCode == 200 && response.data is Map) {
+        return response.data as Map<String, dynamic>;
+      } else {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.badResponse && e.response?.data != null) {
+        final detail = e.response!.data is Map
+            ? (e.response!.data['detail'] ??
+                'Server error (${e.response!.statusCode})')
+            : 'Server error (${e.response!.statusCode})';
+        throw Exception(detail);
+      }
+      throw Exception(
+          'Network error. Please check your connection and try again.');
     } catch (e) {
       throw Exception('Unexpected error: $e');
     }

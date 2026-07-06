@@ -330,88 +330,29 @@ class _ResultScreenState extends State<ResultScreen>
     }
   }
 
-  void _showColorDetailsSheet(BuildContext context, String label, String hexCode, String occasion) {
-    final color = Color(int.parse(hexCode.replaceFirst('#', '0xFF')));
-    final r = color.red;
-    final g = color.green;
-    final b = color.blue;
-
+  void _showReadyToWearBlueprint(
+    BuildContext context,
+    String label,
+    String hexCode,
+    String occasionKey,
+  ) {
+    if (_recommendation == null) return;
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (BuildContext context) {
-        return Padding(
-          padding: const EdgeInsets.all(28.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '$label Color Details',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Container(
-                    width: 90,
-                    height: 90,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        )
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'HEX: ${hexCode.toUpperCase()}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'RGB: ($r, $g, $b)',
-                        style: const TextStyle(color: Colors.white70, fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'How to Style This Shade:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _getStylingTip(occasion, label.toLowerCase()),
-                style: const TextStyle(fontSize: 14.5, color: Colors.white70, height: 1.4),
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        );
-      },
+      builder: (context) => SizedBox(
+        height: MediaQuery.of(context).size.height * 0.9,
+        child: _ReadyToWearBlueprintSheet(
+          focusHex: hexCode,
+          focusLabel: label,
+          rec: _recommendation!,
+          initialOccasion: occasionKey,
+        ),
+      ),
     );
   }
 
@@ -781,7 +722,7 @@ class _ResultScreenState extends State<ResultScreen>
     final parsedColor = Color(int.parse(hexCode.replaceFirst('#', '0xFF')));
 
     return GestureDetector(
-      onTap: () => _showColorDetailsSheet(context, label, hexCode, occasionKey),
+      onTap: () => _showReadyToWearBlueprint(context, label, hexCode, occasionKey),
       child: Column(
         children: [
           Container(
@@ -813,35 +754,430 @@ class _ResultScreenState extends State<ResultScreen>
       ),
     );
   }
+} // end _ResultScreenState
 
-  String _getStylingTip(String occasion, String swatchType) {
-    if (swatchType == 'primary') {
-      switch (occasion) {
-        case 'office':
-          return 'Keep it professional. Use this primary shade for your main garments like blazers, suits, or structured dresses. Pair with soft neutrals.';
-        case 'party':
-          return 'Make a statement! This primary color should be the focal point of your outfit—a stunning suit jacket, shirt, or party dress.';
-        default:
-          return 'Relaxed elegance. Wear this primary color in everyday items like casual t-shirts, polo shirts, or light knit sweaters.';
-      }
-    } else if (swatchType == 'secondary') {
-      switch (occasion) {
-        case 'office':
-          return 'Complement your outfit. Use this secondary color for under-layers (like shirts or blouses) or accessories (ties, scarves).';
-        case 'party':
-          return 'Add matching contrast. Rock this color in secondary styling elements like pants, belts, shoes, or statement makeup.';
-        default:
-          return 'Great for layering. Use this secondary color for layering items, cardigans, light jackets, or chinos.';
-      }
-    } else {
-      switch (occasion) {
-        case 'office':
-          return 'Keep it subtle. This accent shade is perfect for watch straps, pocket squares, socks, or minimal jewelry accents.';
-        case 'party':
-          return 'Sparkle and shine! Use this accent shade for eye-catching details—clutches, pocket squares, earrings, high-contrast heels, or ties.';
-        default:
-          return 'Everyday highlights. Perfect for baseball caps, sneaker trims, canvas bags, or small personal accessories.';
-      }
+// =============================================================================
+// Ready-to-Wear Blueprint — data model
+// =============================================================================
+
+class _OutfitSlot {
+  final String garmentLabel;
+  final IconData icon;
+  final String hex;
+  final String colorLabel;
+  final bool isKeyPiece;
+
+  const _OutfitSlot(
+    this.garmentLabel,
+    this.icon,
+    this.hex,
+    this.colorLabel,
+    this.isKeyPiece,
+  );
+}
+
+// =============================================================================
+// Ready-to-Wear Blueprint — bottom sheet widget
+// =============================================================================
+
+class _ReadyToWearBlueprintSheet extends StatefulWidget {
+  final String focusHex;
+  final String focusLabel;
+  final ColorRecommendation rec;
+  final String initialOccasion;
+
+  const _ReadyToWearBlueprintSheet({
+    required this.focusHex,
+    required this.focusLabel,
+    required this.rec,
+    required this.initialOccasion,
+  });
+
+  @override
+  State<_ReadyToWearBlueprintSheet> createState() =>
+      _ReadyToWearBlueprintSheetState();
+}
+
+class _ReadyToWearBlueprintSheetState
+    extends State<_ReadyToWearBlueprintSheet>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  static const _occasions = ['office', 'party', 'casual'];
+  static const _occLabels = ['Office', 'Party', 'Casual'];
+
+  @override
+  void initState() {
+    super.initState();
+    final idx = _occasions.indexOf(widget.initialOccasion);
+    _tabController = TabController(
+      length: _occasions.length,
+      vsync: this,
+      initialIndex: idx >= 0 ? idx : 0,
+    );
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final focusColor = _safeColor(widget.focusHex);
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF130D2E),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(
+        children: [
+          // Drag handle
+          const SizedBox(height: 10),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          // Hero colour header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: focusColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white24, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: focusColor.withOpacity(0.45),
+                        blurRadius: 18,
+                        spreadRadius: 4,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${widget.focusLabel} — ${widget.focusHex.toUpperCase()}',
+                        style: TextStyle(
+                          color: focusColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      const Text(
+                        'Ready-to-Wear Blueprint',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Text(
+                        'Your complete outfit, every occasion.',
+                        style:
+                            TextStyle(color: Colors.white38, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Occasion tab bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                dividerColor: Colors.transparent,
+                indicatorSize: TabBarIndicatorSize.tab,
+                indicator: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.deepPurple.shade600,
+                      Colors.indigo.shade500,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white54,
+                labelStyle: const TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 13),
+                tabs: _occLabels.map((l) => Tab(text: l)).toList(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+
+          // Tab content
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: _occasions.map(_buildOutfitStack).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOutfitStack(String occasionKey) {
+    final palette =
+        widget.rec.palettes[occasionKey] ?? widget.rec.palettes['casual']!;
+    final slots = _outfitSlots(occasionKey, palette);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _tagline(occasionKey),
+            style: const TextStyle(
+              color: Colors.white38,
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...slots.asMap().entries.map(
+                (e) => _slotRow(e.value)
+                    .animate()
+                    .fadeIn(delay: (e.key * 70).ms, duration: 280.ms)
+                    .slideX(begin: 0.06, end: 0),
+              ),
+          const SizedBox(height: 18),
+          // Shop the Look CTA (placeholder for retail integrations)
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                        '🛍️ Shop the Look — retail partners coming soon!'),
+                    backgroundColor: Colors.deepPurple,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              icon: const Icon(Icons.shopping_bag_outlined,
+                  color: Colors.white, size: 18),
+              label: const Text(
+                'Shop the Look',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepPurple,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                elevation: 6,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _slotRow(_OutfitSlot slot) {
+    final c = _safeColor(slot.hex);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: slot.isKeyPiece
+            ? Colors.deepPurple.withOpacity(0.18)
+            : Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: slot.isKeyPiece
+              ? Colors.deepPurple.withOpacity(0.45)
+              : Colors.white.withOpacity(0.07),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: c,
+              borderRadius: BorderRadius.circular(13),
+              border: Border.all(
+                  color: Colors.white.withOpacity(0.18), width: 1.5),
+              boxShadow: slot.isKeyPiece
+                  ? [
+                      BoxShadow(
+                          color: c.withOpacity(0.55),
+                          blurRadius: 14,
+                          spreadRadius: 2)
+                    ]
+                  : null,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(slot.icon, color: Colors.white60, size: 14),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        slot.garmentLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(slot.colorLabel,
+                    style: const TextStyle(
+                        color: Colors.white54, fontSize: 11.5)),
+                Text(
+                  slot.hex.toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.white30,
+                    fontSize: 10.5,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (slot.isKeyPiece)
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.deepPurple.shade400,
+                    Colors.purple.shade600
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                '⭐ KEY',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  List<_OutfitSlot> _outfitSlots(String occasionKey, OccasionPalette palette) {
+    final primary = palette.primaryColor;
+    final secondary = palette.secondaryColor;
+    final accent = palette.accentColor;
+
+    final pc = _safeColor(primary);
+    final hsl = HSLColor.fromColor(pc);
+    final darkNeutral = hsl
+        .withSaturation((hsl.saturation * 0.1).clamp(0.0, 1.0))
+        .withLightness(0.12)
+        .toColor();
+    final darkHex = '#'
+        '${darkNeutral.red.toRadixString(16).padLeft(2, '0')}'
+        '${darkNeutral.green.toRadixString(16).padLeft(2, '0')}'
+        '${darkNeutral.blue.toRadixString(16).padLeft(2, '0')}';
+
+    switch (occasionKey) {
+      case 'office':
+        return [
+          _OutfitSlot('Blazer / Outerwear', Icons.business_center_rounded,
+              primary, 'Primary — Key Piece', true),
+          _OutfitSlot('Shirt / Blouse', Icons.dry_cleaning_rounded,
+              secondary, 'Secondary Color', false),
+          _OutfitSlot('Trousers / Skirt', Icons.straighten_rounded,
+              darkHex, 'Dark Neutral', false),
+          _OutfitSlot('Shoes / Loafers', Icons.hiking_rounded,
+              accent, 'Accent Color', false),
+        ];
+      case 'party':
+        return [
+          _OutfitSlot('Statement Dress / Top', Icons.celebration_rounded,
+              primary, 'Primary — Star Piece', true),
+          _OutfitSlot('Evening Jacket / Wrap',
+              Icons.local_fire_department_rounded, accent, 'Accent Color', false),
+          _OutfitSlot('Trousers / Bottoms', Icons.straighten_rounded,
+              darkHex, 'Dark Neutral', false),
+          _OutfitSlot('Heels / Dress Shoes', Icons.hiking_rounded,
+              secondary, 'Secondary Color', false),
+        ];
+      default: // casual
+        return [
+          _OutfitSlot('T-Shirt / Casual Top', Icons.dry_cleaning_rounded,
+              primary, 'Primary — Hero Piece', true),
+          _OutfitSlot('Cardigan / Light Jacket', Icons.cloud_rounded,
+              secondary, 'Secondary Color', false),
+          _OutfitSlot('Jeans / Casual Pants', Icons.straighten_rounded,
+              darkHex, 'Dark Neutral', false),
+          _OutfitSlot('Sneakers / Casual Shoes', Icons.hiking_rounded,
+              accent, 'Accent Color', false),
+        ];
+    }
+  }
+
+  static Color _safeColor(String hex) {
+    try {
+      return Color(int.parse(hex.replaceFirst('#', '0xFF')));
+    } catch (_) {
+      return Colors.grey;
+    }
+  }
+
+  static String _tagline(String occasion) {
+    switch (occasion) {
+      case 'office':
+        return '"Professional, polished, and effortlessly commanding."';
+      case 'party':
+        return '"Bold, vibrant, and made to be remembered."';
+      default:
+        return '"Relaxed, harmonious, and authentically you."';
     }
   }
 }
