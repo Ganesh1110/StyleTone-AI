@@ -48,6 +48,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
   // Color drape overlay configurations
   bool _showDrapes = false;
   Color _drapeColor = const Color(0xFFC24A2F); // Default to Terracotta Red
+  double _drapeNormalizedY = 0.70; // Vertical drape alignment Y (0.4 to 0.95)
 
   static const Map<String, List<Map<String, String>>> _seasonalPalettes = {
     'Spring': [
@@ -309,97 +310,122 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                                     ),
                                   ),
 
-                                  // Color Drape Overlay (collars under the face outline)
+                                  // Color Drape Overlay (draggable vertical neck collar)
                                   if (_showDrapes)
                                     Positioned(
-                                      bottom: 0,
+                                      top: _drapeNormalizedY * size.height,
                                       left: 0,
                                       right: 0,
-                                      height: size.height * 0.32,
-                                      child: ClipPath(
-                                        clipper: NeckDrapeClipper(),
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              begin: Alignment.topCenter,
-                                              end: Alignment.bottomCenter,
-                                              colors: [
-                                                _drapeColor,
-                                                _drapeColor.withOpacity(0.85),
-                                              ],
-                                            ),
-                                          ),
-                                          child: Stack(
-                                            children: [
-                                              // Subtle fine linen texture lines
-                                              Positioned.fill(
-                                                child: CustomPaint(
-                                                  painter: FabricTexturePainter(),
-                                                ),
+                                      bottom: 0,
+                                      child: GestureDetector(
+                                        onVerticalDragUpdate: (details) {
+                                          setState(() {
+                                            final double deltaY = details.delta.dy / size.height;
+                                            _drapeNormalizedY = (_drapeNormalizedY + deltaY).clamp(0.4, 0.95);
+                                          });
+                                        },
+                                        child: ClipPath(
+                                          clipper: NeckDrapeClipper(),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                                colors: [
+                                                  _drapeColor,
+                                                  _drapeColor.withOpacity(0.85),
+                                                ],
                                               ),
-                                              Align(
-                                                alignment: Alignment.bottomCenter,
-                                                child: Padding(
-                                                  padding: const EdgeInsets.only(bottom: 6.0),
-                                                  child: Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.black.withOpacity(0.5),
-                                                      borderRadius: BorderRadius.circular(6),
-                                                    ),
-                                                    child: Text(
-                                                      'Drape: #${_drapeColor.value.toRadixString(16).substring(2).toUpperCase()}',
-                                                      style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                                            ),
+                                            child: Stack(
+                                              children: [
+                                                // Subtle fine linen texture lines
+                                                Positioned.fill(
+                                                  child: CustomPaint(
+                                                    painter: FabricTexturePainter(),
+                                                  ),
+                                                ),
+                                                // Drag handle bar indicator at top center
+                                                Align(
+                                                  alignment: Alignment.topCenter,
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.only(top: 8.0),
+                                                    child: Container(
+                                                      width: 36,
+                                                      height: 4,
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white60,
+                                                        borderRadius: BorderRadius.circular(2),
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
-                                              ),
-                                            ],
+                                                Align(
+                                                  alignment: Alignment.bottomCenter,
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.only(bottom: 6.0),
+                                                    child: Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.black.withOpacity(0.5),
+                                                        borderRadius: BorderRadius.circular(6),
+                                                      ),
+                                                      child: Text(
+                                                        'Drape: #${_drapeColor.value.toRadixString(16).substring(2).toUpperCase()}',
+                                                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
 
-                                  // Draggable dropper & tooltip based on active user selection
-                                  if (_activeDropper == 'skin') ...[
-                                    _buildDropper(
-                                      type: 'skin',
-                                      norm: _skinNormalized,
-                                      color: _skinColor,
-                                      canvasSize: size,
-                                    ),
-                                    _buildDropperTooltip(
-                                      type: 'skin',
-                                      label: 'Skin',
-                                      norm: _skinNormalized,
-                                      canvasSize: size,
-                                    ),
-                                  ] else if (_activeDropper == 'hair') ...[
-                                    _buildDropper(
-                                      type: 'hair',
-                                      norm: _hairNormalized,
-                                      color: _hairColor,
-                                      canvasSize: size,
-                                    ),
-                                    _buildDropperTooltip(
-                                      type: 'hair',
-                                      label: 'Hair',
-                                      norm: _hairNormalized,
-                                      canvasSize: size,
-                                    ),
-                                  ] else if (_activeDropper == 'eye') ...[
-                                    _buildDropper(
-                                      type: 'eye',
-                                      norm: _eyeNormalized,
-                                      color: _eyeColor,
-                                      canvasSize: size,
-                                    ),
-                                    _buildDropperTooltip(
-                                      type: 'eye',
-                                      label: 'Eye',
-                                      norm: _eyeNormalized,
-                                      canvasSize: size,
-                                    ),
+                                  // Draggable dropper & tooltip based on active user selection (hidden when draping is active)
+                                  if (!_showDrapes) ...[
+                                    if (_activeDropper == 'skin') ...[
+                                      _buildDropper(
+                                        type: 'skin',
+                                        norm: _skinNormalized,
+                                        color: _skinColor,
+                                        canvasSize: size,
+                                      ),
+                                      _buildDropperTooltip(
+                                        type: 'skin',
+                                        label: 'Skin',
+                                        norm: _skinNormalized,
+                                        canvasSize: size,
+                                      ),
+                                    ] else if (_activeDropper == 'hair') ...[
+                                      _buildDropper(
+                                        type: 'hair',
+                                        norm: _hairNormalized,
+                                        color: _hairColor,
+                                        canvasSize: size,
+                                      ),
+                                      _buildDropperTooltip(
+                                        type: 'hair',
+                                        label: 'Hair',
+                                        norm: _hairNormalized,
+                                        canvasSize: size,
+                                      ),
+                                    ] else if (_activeDropper == 'eye') ...[
+                                      _buildDropper(
+                                        type: 'eye',
+                                        norm: _eyeNormalized,
+                                        color: _eyeColor,
+                                        canvasSize: size,
+                                      ),
+                                      _buildDropperTooltip(
+                                        type: 'eye',
+                                        label: 'Eye',
+                                        norm: _eyeNormalized,
+                                        canvasSize: size,
+                                      ),
+                                    ],
                                   ],
 
                                   // Suboptimal Lighting Warning Banner
@@ -409,20 +435,37 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                                       left: 12,
                                       right: 70, // leave space for drape toggle
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 8,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: Colors.amber.shade900.withOpacity(0.9),
-                                          borderRadius: BorderRadius.circular(10),
-                                          border: Border.all(color: Colors.amberAccent.withOpacity(0.4)),
+                                          color: Colors.amber.shade900
+                                              .withOpacity(0.9),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.amberAccent
+                                                .withOpacity(0.4),
+                                          ),
                                         ),
                                         child: const Row(
                                           children: [
-                                            Icon(Icons.wb_sunny_rounded, color: Colors.white, size: 14),
+                                            Icon(
+                                              Icons.wb_sunny_rounded,
+                                              color: Colors.white,
+                                              size: 14,
+                                            ),
                                             SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
                                                 'Lighting Alert: Area is dark or shadowed. Drag Skin dropper to a naturally lit spot.',
-                                                style: TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 9.5,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                               ),
                                             ),
                                           ],
@@ -438,15 +481,26 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                                       type: MaterialType.transparency,
                                       child: Ink(
                                         decoration: ShapeDecoration(
-                                          color: const Color(0xFF130D2E).withOpacity(0.85),
+                                          color: const Color(
+                                            0xFF130D2E,
+                                          ).withOpacity(0.85),
                                           shape: const CircleBorder(
-                                            side: BorderSide(color: Colors.white24, width: 0.8),
+                                            side: BorderSide(
+                                              color: Colors.white24,
+                                              width: 0.8,
+                                            ),
                                           ),
                                         ),
                                         child: IconButton(
-                                          onPressed: () => setState(() => _showDrapes = !_showDrapes),
-                                          icon: const Icon(Icons.checkroom_rounded),
-                                          color: _showDrapes ? Colors.greenAccent : Colors.white,
+                                          onPressed: () => setState(
+                                            () => _showDrapes = !_showDrapes,
+                                          ),
+                                          icon: const Icon(
+                                            Icons.checkroom_rounded,
+                                          ),
+                                          color: _showDrapes
+                                              ? Colors.greenAccent
+                                              : Colors.white,
                                           iconSize: 20,
                                           tooltip: 'Toggle Color Drape Overlay',
                                         ),
@@ -900,7 +954,9 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                                 color: _drapeColor == color && _showDrapes
                                     ? Colors.greenAccent
                                     : Colors.white24,
-                                width: _drapeColor == color && _showDrapes ? 2.0 : 1.0,
+                                width: _drapeColor == color && _showDrapes
+                                    ? 2.0
+                                    : 1.0,
                               ),
                             ),
                           ),
@@ -964,7 +1020,9 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                                 color: _drapeColor == color && _showDrapes
                                     ? Colors.greenAccent
                                     : const Color(0xFFFF5252).withOpacity(0.6),
-                                width: _drapeColor == color && _showDrapes ? 2.0 : 1.5,
+                                width: _drapeColor == color && _showDrapes
+                                    ? 2.0
+                                    : 1.5,
                               ),
                             ),
                             child: const Center(

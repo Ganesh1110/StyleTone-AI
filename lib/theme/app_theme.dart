@@ -2,21 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Base Colors
-  static const Color primary = Color(0xFF6A1B9A);
-  static const Color secondary = Color(0xFFE94057);
-  static const Color background = Color(0xFF0F0F13);
-  static const Color surface = Color(0xFF1E1E24);
+  // ─── Default Premium Theme (Modern Orchid & Twilight) ──────────────────────
+  static const Color primary = Color(0xFF8B5CF6); // Modern Violet
+  static const Color secondary = Color(0xFFEC4899); // Electric Hot Pink
+  static const Color background = Color(0xFF0B071E); // Rich Deep Twilight Navy
+  static const Color surface = Color(0xFF171133); // Cozy Purple-Slate
   static const Color textPrimary = Colors.white;
-  static const Color textSecondary = Color(0xFFA0A0A5);
+  static const Color textSecondary = Color(0xFF9E99BA); // Muted Violet-Silver
 
-  // Ocean Theme Colors
-  static const Color oceanPrimary = Color(0xFF0066CC);
-  static const Color oceanSecondary = Color(0xFF00BCD4);
+  // ─── Ocean Premium Theme (Electric Coral & Seafoam) ────────────────────────
+  static const Color oceanPrimary = Color(0xFF0EA5E9); // Electric Blue
+  static const Color oceanSecondary = Color(0xFF06B6D4); // Cyan Seafoam
+  static const Color oceanBackground = Color(0xFF050E1A); // Deep Marine Blue
+  static const Color oceanSurface = Color(0xFF0E1A2D); // Deep Teal-Slate
 
-  // Forest Theme Colors
-  static const Color forestPrimary = Color(0xFF2E7D32);
-  static const Color forestSecondary = Color(0xFFFF8F00);
+  // ─── Forest Premium Theme (Deep Moss & Golden Champagne) ───────────────────
+  static const Color forestPrimary = Color(0xFF10B981); // Bright Emerald
+  static const Color forestSecondary = Color(0xFFF59E0B); // Amber Champagne
+  static const Color forestBackground = Color(0xFF040D0A); // Forest Pine Shadow
+  static const Color forestSurface = Color(0xFF0D1C17); // Mossy Bark
 
   // Gradient definitions
   static LinearGradient primaryGradientFor(Color p, Color s) {
@@ -48,20 +52,18 @@ class AppTheme {
   static ThemeData _buildThemeData({
     required Color primary,
     required Color secondary,
-    Color? background,
-    Color? surface,
+    required Color background,
+    required Color surface,
   }) {
-    final bg = background ?? AppTheme.background;
-    final sf = surface ?? AppTheme.surface;
     return ThemeData(
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: bg,
+      scaffoldBackgroundColor: background,
       primaryColor: primary,
       colorScheme: ColorScheme.dark(
         primary: primary,
         secondary: secondary,
-        surface: sf,
-        background: bg,
+        surface: surface,
+        background: background,
       ),
       textTheme: TextTheme(
         displayLarge: GoogleFonts.playfairDisplay(
@@ -142,15 +144,30 @@ class AppTheme {
   }
 
   static ThemeData get darkTheme {
-    return _buildThemeData(primary: primary, secondary: secondary);
+    return _buildThemeData(
+      primary: primary,
+      secondary: secondary,
+      background: background,
+      surface: surface,
+    );
   }
 
   static ThemeData get oceanTheme {
-    return _buildThemeData(primary: oceanPrimary, secondary: oceanSecondary);
+    return _buildThemeData(
+      primary: oceanPrimary,
+      secondary: oceanSecondary,
+      background: oceanBackground,
+      surface: oceanSurface,
+    );
   }
 
   static ThemeData get forestTheme {
-    return _buildThemeData(primary: forestPrimary, secondary: forestSecondary);
+    return _buildThemeData(
+      primary: forestPrimary,
+      secondary: forestSecondary,
+      background: forestBackground,
+      surface: forestSurface,
+    );
   }
 
   static ThemeData getThemeByName(
@@ -167,6 +184,8 @@ class AppTheme {
         return _buildThemeData(
           primary: customPrimary ?? primary,
           secondary: customSecondary ?? secondary,
+          background: background,
+          surface: surface,
         );
       default:
         return darkTheme;
