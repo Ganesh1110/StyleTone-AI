@@ -23,15 +23,7 @@ class HistoryItem {
         'occasion': occasion,
         'imagePath': imagePath,
         'rating': rating,
-        'recommendation': {
-          'detected_category': recommendation.detectedCategory,
-          'primary_color': recommendation.primaryColor,
-          'secondary_color': recommendation.secondaryColor,
-          'accent_color': recommendation.accentColor,
-          'confidence': recommendation.confidence,
-          'explanation': recommendation.explanation,
-          'message': recommendation.message,
-        }
+        'recommendation': recommendation.toJson(),
       };
 
   factory HistoryItem.fromJson(Map<String, dynamic> json) {

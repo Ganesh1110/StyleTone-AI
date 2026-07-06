@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import '../models/color_recommendation.dart';
 import '../services/database_helper.dart';
 import '../models/closet_item.dart';
@@ -35,6 +35,17 @@ class _VirtualTryOnScreenState extends State<VirtualTryOnScreen>
   List<ClosetItem> _closetItems = [];
   bool _showClosetItems = false;
 
+  // Face detection & interactive gesture states
+  Rect? _faceRect;
+  Offset _offset = Offset.zero;
+  double _scale = 1.0;
+  double _rotation = 0.0;
+
+  Offset _baseOffset = Offset.zero;
+  double _baseScale = 1.0;
+  double _baseRotation = 0.0;
+  Offset _startingFocalPoint = Offset.zero;
+
   final List<Map<String, dynamic>> _garmentTypes = [
     {'key': 'top', 'label': 'Top', 'icon': Icons.checkroom},
     {'key': 'dress', 'label': 'Dress', 'icon': Icons.woman_2_rounded},
@@ -60,10 +71,122 @@ class _VirtualTryOnScreenState extends State<VirtualTryOnScreen>
     final bytes = await widget.selfieFile.readAsBytes();
     final codec = await ui.instantiateImageCodec(bytes, targetWidth: 800);
     final frame = await codec.getNextFrame();
+    final imgWidth = frame.image.width.toDouble();
+    final imgHeight = frame.image.height.toDouble();
+
     setState(() {
       _selfieImage = frame.image;
-      _imageSize = Size(frame.image.width.toDouble(), frame.image.height.toDouble());
+      _imageSize = Size(imgWidth, imgHeight);
+    });
+
+    final faceDetector = FaceDetector(
+      options: FaceDetectorOptions(
+        enableClassification: false,
+        enableTracking: false,
+        minFaceSize: 0.1,
+      ),
+    );
+
+    try {
+      final inputImage = InputImage.fromFile(widget.selfieFile);
+      final faces = await faceDetector.processImage(inputImage);
+      if (faces.isNotEmpty) {
+        _faceRect = faces.first.boundingBox;
+      }
+    } catch (e) {
+      debugPrint('Face detection failed in try-on: $e');
+    } finally {
+      await faceDetector.close();
+      _applyDefaultPositionForGarment();
+    }
+  }
+
+  void _applyDefaultPositionForGarment() {
+    if (_faceRect == null || _imageSize == Size.zero) {
+      setState(() {
+        _offset = Offset.zero;
+        _scale = 1.0;
+        _rotation = 0.0;
+        _isLoadingImage = false;
+      });
+      return;
+    }
+
+    final fw = _faceRect!.width;
+    final fh = _faceRect!.height;
+    final fcx = _faceRect!.left + fw / 2;
+    final fbottom = _faceRect!.bottom;
+
+    final imgW = _imageSize.width;
+    final imgH = _imageSize.height;
+
+    double defaultX = fcx - imgW / 2;
+    double defaultY = 0.0;
+    double defaultScale = 1.0;
+
+    switch (_selectedGarment) {
+      case 'top':
+      case 'blazer':
+        final painterShoulderY = _selectedGarment == 'top' ? imgH * 0.15 : imgH * 0.14;
+        defaultY = fbottom - painterShoulderY + fh * 0.1;
+        final painterShoulderW = _selectedGarment == 'top' ? imgW * 0.70 : imgW * 0.74;
+        defaultScale = (fw * 2.3) / painterShoulderW;
+        break;
+
+      case 'dress':
+        final painterShoulderY = imgH * 0.12;
+        defaultY = fbottom - painterShoulderY + fh * 0.1;
+        defaultScale = (fw * 2.3) / (imgW * 0.6);
+        break;
+
+      case 'bottom':
+        final painterWaistY = imgH * 0.48;
+        final targetWaistY = fbottom + fh * 2.8;
+        defaultY = targetWaistY - painterWaistY;
+        defaultScale = (fw * 2.0) / (imgW * 0.44);
+        break;
+
+      case 'accessory':
+        final painterNeckY = imgH * 0.12;
+        defaultY = fbottom - painterNeckY - fh * 0.1;
+        defaultScale = (fw * 1.6) / (imgW * 0.4);
+        break;
+
+      default:
+        defaultY = fbottom - (imgH * 0.15);
+        defaultScale = (fw * 2.2) / (imgW * 0.7);
+    }
+
+    if (defaultScale.isNaN || defaultScale.isInfinite || defaultScale <= 0) {
+      defaultScale = 1.0;
+    } else {
+      defaultScale = defaultScale.clamp(0.2, 5.0);
+    }
+
+    setState(() {
+      _offset = Offset(defaultX, defaultY);
+      _scale = defaultScale;
+      _rotation = 0.0;
       _isLoadingImage = false;
+    });
+  }
+
+  void _resetGarmentPosition() {
+    _applyDefaultPositionForGarment();
+  }
+
+  void _onScaleStart(ScaleStartDetails details) {
+    _startingFocalPoint = details.localFocalPoint;
+    _baseOffset = _offset;
+    _baseScale = _scale;
+    _baseRotation = _rotation;
+  }
+
+  void _onScaleUpdate(ScaleUpdateDetails details) {
+    setState(() {
+      _scale = (_baseScale * details.scale).clamp(0.1, 8.0);
+      _rotation = _baseRotation + details.rotation;
+      _offset = _baseOffset + (details.localFocalPoint - _startingFocalPoint);
     });
   }
 
@@ -134,30 +257,48 @@ class _VirtualTryOnScreenState extends State<VirtualTryOnScreen>
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Selfie photo
+        // Content fitted container
         if (_selfieImage != null)
-          FittedBox(
-            fit: BoxFit.contain,
-            child: SizedBox(
-              width: _imageSize.width,
-              height: _imageSize.height,
-              child: RawImage(
-                image: _selfieImage!,
-                fit: BoxFit.contain,
+          Center(
+            child: FittedBox(
+              fit: BoxFit.contain,
+              child: SizedBox(
+                width: _imageSize.width,
+                height: _imageSize.height,
+                child: Stack(
+                  children: [
+                    RawImage(
+                      image: _selfieImage!,
+                      fit: BoxFit.fill,
+                    ),
+                    Positioned.fill(
+                      child: GestureDetector(
+                        onScaleStart: _onScaleStart,
+                        onScaleUpdate: _onScaleUpdate,
+                        child: Transform.translate(
+                          offset: _offset,
+                          child: Transform.rotate(
+                            angle: _rotation,
+                            child: Transform.scale(
+                              scale: _scale,
+                              child: CustomPaint(
+                                painter: GarmentOverlayPainter(
+                                  garmentType: _selectedGarment,
+                                  color: color.withOpacity(_opacity),
+                                  imageSize: _imageSize,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        // Garment overlay
-        if (_selfieImage != null)
-          Positioned.fill(
-            child: CustomPaint(
-              painter: GarmentOverlayPainter(
-                garmentType: _selectedGarment,
-                color: color.withOpacity(_opacity),
-                imageSize: _imageSize,
-              ),
-            ),
-          ),
+
         // Season badge
         Positioned(
           top: 16,
@@ -199,6 +340,55 @@ class _VirtualTryOnScreenState extends State<VirtualTryOnScreen>
             ),
           ),
         ),
+
+        // Interactive hints and reset button
+        Positioned(
+          bottom: 16,
+          left: 16,
+          right: 16,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Tips helper
+              Expanded(
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.65),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.purpleAccent, size: 16),
+                      SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Pinch to scale/rotate. Drag to move.',
+                          style: TextStyle(color: Colors.white70, fontSize: 11),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(width: 12),
+              // Reset button
+              ElevatedButton.icon(
+                onPressed: _resetGarmentPosition,
+                icon: Icon(Icons.refresh, size: 16, color: Colors.white),
+                label: Text('Reset', style: TextStyle(color: Colors.white, fontSize: 12)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple.withOpacity(0.85),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+              ),
+            ],
+          ),
+        ),
+
         // Closet suggestions overlay
         if (_showClosetItems) _buildClosetOverlay(),
       ],
@@ -223,7 +413,7 @@ class _VirtualTryOnScreenState extends State<VirtualTryOnScreen>
         child: items.isEmpty
             ? Center(
                 child: Text(
-                  'No ${_selectedGarment} items in closet',
+                  'No $_selectedGarment items in closet',
                   style: TextStyle(color: Colors.white54),
                 ),
               )
@@ -351,7 +541,12 @@ class _VirtualTryOnScreenState extends State<VirtualTryOnScreen>
                 return Padding(
                   padding: EdgeInsets.only(right: 8),
                   child: GestureDetector(
-                    onTap: () => setState(() => _selectedGarment = g['key'] as String),
+                    onTap: () {
+                      setState(() {
+                        _selectedGarment = g['key'] as String;
+                        _applyDefaultPositionForGarment();
+                      });
+                    },
                     child: Container(
                       padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(

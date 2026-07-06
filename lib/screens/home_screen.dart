@@ -9,7 +9,6 @@ import 'profile_screen.dart';
 import 'closet_screen.dart';
 import 'outfit_combinator_screen.dart';
 import 'live_matcher_screen.dart';
-import 'challenge_screen.dart';
 import 'trip_mode_screen.dart';
 import 'style_timeline_screen.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -182,15 +181,6 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(
-                    child: _MiniFeatureCard(
-                      icon: Icons.emoji_events_rounded,
-                      label: 'Capsule\nChallenge',
-                      color: Colors.amber,
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChallengeScreen())),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
                   Expanded(
                     child: _MiniFeatureCard(
                       icon: Icons.flight_rounded,

@@ -6,7 +6,6 @@ import 'package:path/path.dart';
 import '../models/history_item.dart';
 import '../models/color_recommendation.dart';
 import '../models/closet_item.dart';
-import '../models/challenge.dart';
 import '../models/trip.dart';
 import '../models/timeline_event.dart';
 
@@ -300,96 +299,7 @@ class DatabaseHelper {
     }
   }
 
-  // --- CHALLENGE DAO METHODS ---
 
-  Future<int> insertChallenge(Challenge challenge) async {
-    try {
-      final db = await instance.database;
-      return await db.insert(
-        'challenges',
-        challenge.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    } catch (e) {
-      debugPrint('Error inserting challenge: $e');
-      return -1;
-    }
-  }
-
-  Future<List<Challenge>> getAllChallenges() async {
-    try {
-      final db = await instance.database;
-      final maps = await db.query('challenges', orderBy: 'startDate DESC');
-      return maps.map((map) => Challenge.fromMap(map)).toList();
-    } catch (e) {
-      debugPrint('Error querying challenges: $e');
-      return [];
-    }
-  }
-
-  Future<int> updateChallenge(Challenge challenge) async {
-    try {
-      final db = await instance.database;
-      return await db.update(
-        'challenges',
-        challenge.toMap(),
-        where: 'id = ?',
-        whereArgs: [challenge.id],
-      );
-    } catch (e) {
-      debugPrint('Error updating challenge: $e');
-      return -1;
-    }
-  }
-
-  Future<int> deleteChallenge(String id) async {
-    try {
-      final db = await instance.database;
-      await db.delete('challenge_progress', where: 'challengeId = ?', whereArgs: [id]);
-      return await db.delete('challenges', where: 'id = ?', whereArgs: [id]);
-    } catch (e) {
-      debugPrint('Error deleting challenge: $e');
-      return -1;
-    }
-  }
-
-  Future<int> upsertChallengeProgress(String challengeId, int dayNumber, bool isCompleted, {String? completedDate}) async {
-    try {
-      final db = await instance.database;
-      return await db.insert(
-        'challenge_progress',
-        {
-          'challengeId': challengeId,
-          'dayNumber': dayNumber,
-          'isCompleted': isCompleted ? 1 : 0,
-          'completedDate': completedDate,
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    } catch (e) {
-      debugPrint('Error upserting challenge progress: $e');
-      return -1;
-    }
-  }
-
-  Future<Map<int, bool>> getChallengeProgress(String challengeId) async {
-    try {
-      final db = await instance.database;
-      final maps = await db.query(
-        'challenge_progress',
-        where: 'challengeId = ?',
-        whereArgs: [challengeId],
-      );
-      final result = <int, bool>{};
-      for (final map in maps) {
-        result[map['dayNumber'] as int] = (map['isCompleted'] as int? ?? 0) == 1;
-      }
-      return result;
-    } catch (e) {
-      debugPrint('Error querying challenge progress: $e');
-      return {};
-    }
-  }
 
   // --- TRIP DAO METHODS ---
 

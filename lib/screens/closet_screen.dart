@@ -164,7 +164,17 @@ class _ClosetScreenState extends State<ClosetScreen>
 
       // Show dialog to choose category and verify color classification
       if (mounted) {
-        _showSaveGarmentDialog(savedFile, localSavedPath, hexColor, colorName);
+        final added = await _showSaveGarmentDialog(savedFile, localSavedPath, hexColor, colorName);
+        if (added != true) {
+          try {
+            final f = File(localSavedPath);
+            if (await f.exists()) {
+              await f.delete();
+            }
+          } catch (e) {
+            debugPrint('Failed to delete cancelled closet file: $e');
+          }
+        }
       }
     } catch (e) {
       if (mounted) Navigator.pop(context); // Close loader
@@ -176,16 +186,20 @@ class _ClosetScreenState extends State<ClosetScreen>
     }
   }
 
-  void _showSaveGarmentDialog(
+  Future<bool?> _showSaveGarmentDialog(
     File file,
     String localPath,
     String hexColor,
     String colorName,
   ) {
     String selectedCategory = 'top';
-    final parsedColor = Color(int.parse(hexColor.replaceFirst('#', '0xFF')));
+    String cleanHex = hexColor.replaceFirst('#', '');
+    if (cleanHex.length == 6) {
+      cleanHex = 'FF$cleanHex';
+    }
+    final parsedColor = Color(int.parse(cleanHex, radix: 16));
 
-    showModalBottomSheet(
+    return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -331,8 +345,9 @@ class _ClosetScreenState extends State<ClosetScreen>
 
                         await DatabaseHelper.instance.insertClosetItem(newItem);
                         if (!context.mounted) return;
-                        Navigator.pop(
+                         Navigator.pop(
                           context,
+                          true,
                         ); // Close save dialog bottom sheet
                         _loadClosetItems(); // Refresh items list
 

@@ -86,7 +86,7 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
   Future<void> _loadUserSeasonProfile() async {
     try {
       final history = await DatabaseHelper.instance.fetchAllHistory();
-      if (history.isNotEmpty) {
+      if (history.isNotEmpty && mounted) {
         setState(() {
           _latestScan = history.first;
           // Sync fallback helper season selector to detected category
@@ -135,6 +135,7 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
   }
 
   void _processCameraFrame(CameraImage image) {
+    if (!mounted) return;
     if (_isProcessing) return;
 
     final now = DateTime.now();

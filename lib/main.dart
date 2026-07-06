@@ -38,8 +38,8 @@ class MyApp extends StatelessWidget {
           theme: theme,
           home: cameras != null && cameras!.isNotEmpty
               ? (seenOnboarding
-                  ? HomeScreen(cameras: cameras!)
-                  : OnboardingScreen(cameras: cameras!))
+                    ? HomeScreen(cameras: cameras!)
+                    : OnboardingScreen(cameras: cameras!))
               : const Scaffold(
                   body: Center(
                     child: Text('No cameras available on this device.'),

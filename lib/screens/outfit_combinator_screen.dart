@@ -41,18 +41,19 @@ class _OutfitCombinatorScreenState extends State<OutfitCombinatorScreen> with Si
       final history = await DatabaseHelper.instance.fetchAllHistory();
       final closet = await DatabaseHelper.instance.getAllClosetItems();
 
+      if (!mounted) return;
       setState(() {
-        if (history.isNotEmpty) {
-          _latestScan = history.first;
-        }
+        _latestScan = history.isNotEmpty ? history.first : null;
         _closetItems = closet;
       });
     } catch (e) {
       debugPrint('Error loading matchmaking data: $e');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
