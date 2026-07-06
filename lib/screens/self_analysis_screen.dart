@@ -45,6 +45,10 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
   // Track active dropper selection for highlight
   String _activeDropper = 'skin'; // 'skin' | 'hair' | 'eye'
 
+  // Color drape overlay configurations
+  bool _showDrapes = false;
+  Color _drapeColor = const Color(0xFFC24A2F); // Default to Terracotta Red
+
   static const Map<String, List<Map<String, String>>> _seasonalPalettes = {
     'Spring': [
       {'name': 'Coral Pink', 'hex': '#FF6F61'},
@@ -202,6 +206,11 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
     });
   }
 
+  bool get _isLightingSuboptimal {
+    final hslSkin = HSLColor.fromColor(_skinColor);
+    return hslSkin.lightness < 0.22 || hslSkin.lightness > 0.88;
+  }
+
   void _onDropperDragged(String type, Offset delta, Size canvasSize) {
     if (_decodedImage == null) return;
 
@@ -300,6 +309,57 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                                     ),
                                   ),
 
+                                  // Color Drape Overlay (collars under the face outline)
+                                  if (_showDrapes)
+                                    Positioned(
+                                      bottom: 0,
+                                      left: 0,
+                                      right: 0,
+                                      height: size.height * 0.32,
+                                      child: ClipPath(
+                                        clipper: NeckDrapeClipper(),
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                              colors: [
+                                                _drapeColor,
+                                                _drapeColor.withOpacity(0.85),
+                                              ],
+                                            ),
+                                          ),
+                                          child: Stack(
+                                            children: [
+                                              // Subtle fine linen texture lines
+                                              Positioned.fill(
+                                                child: CustomPaint(
+                                                  painter: FabricTexturePainter(),
+                                                ),
+                                              ),
+                                              Align(
+                                                alignment: Alignment.bottomCenter,
+                                                child: Padding(
+                                                  padding: const EdgeInsets.only(bottom: 6.0),
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.black.withOpacity(0.5),
+                                                      borderRadius: BorderRadius.circular(6),
+                                                    ),
+                                                    child: Text(
+                                                      'Drape: #${_drapeColor.value.toRadixString(16).substring(2).toUpperCase()}',
+                                                      style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+
                                   // Draggable dropper & tooltip based on active user selection
                                   if (_activeDropper == 'skin') ...[
                                     _buildDropper(
@@ -341,6 +401,58 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                                       canvasSize: size,
                                     ),
                                   ],
+
+                                  // Suboptimal Lighting Warning Banner
+                                  if (_isLightingSuboptimal)
+                                    Positioned(
+                                      top: 12,
+                                      left: 12,
+                                      right: 70, // leave space for drape toggle
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.amber.shade900.withOpacity(0.9),
+                                          borderRadius: BorderRadius.circular(10),
+                                          border: Border.all(color: Colors.amberAccent.withOpacity(0.4)),
+                                        ),
+                                        child: const Row(
+                                          children: [
+                                            Icon(Icons.wb_sunny_rounded, color: Colors.white, size: 14),
+                                            SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                'Lighting Alert: Area is dark or shadowed. Drag Skin dropper to a naturally lit spot.',
+                                                style: TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+
+                                  // Drape Toggle FAB Icon
+                                  Positioned(
+                                    top: 12,
+                                    right: 12,
+                                    child: Material(
+                                      type: MaterialType.transparency,
+                                      child: Ink(
+                                        decoration: ShapeDecoration(
+                                          color: const Color(0xFF130D2E).withOpacity(0.85),
+                                          shape: const CircleBorder(
+                                            side: BorderSide(color: Colors.white24, width: 0.8),
+                                          ),
+                                        ),
+                                        child: IconButton(
+                                          onPressed: () => setState(() => _showDrapes = !_showDrapes),
+                                          icon: const Icon(Icons.checkroom_rounded),
+                                          color: _showDrapes ? Colors.greenAccent : Colors.white,
+                                          iconSize: 20,
+                                          tooltip: 'Toggle Color Drape Overlay',
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -767,28 +879,41 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                     int.parse(item['hex']!.replaceFirst('#', '0xFF')),
                   );
 
-                  return Container(
-                    margin: const EdgeInsets.only(right: 12),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: color,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.white24),
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _drapeColor = color;
+                        _showDrapes = true; // Auto-enable drape overlay!
+                      });
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 12),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: color,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: _drapeColor == color && _showDrapes
+                                    ? Colors.greenAccent
+                                    : Colors.white24,
+                                width: _drapeColor == color && _showDrapes ? 2.0 : 1.0,
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          item['name']!,
-                          style: const TextStyle(
-                            color: Colors.white38,
-                            fontSize: 9.5,
+                          const SizedBox(height: 4),
+                          Text(
+                            item['name']!,
+                            style: const TextStyle(
+                              color: Colors.white38,
+                              fontSize: 9.5,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -818,38 +943,48 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                     int.parse(item['hex']!.replaceFirst('#', '0xFF')),
                   );
 
-                  return Container(
-                    margin: const EdgeInsets.only(right: 12),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFFFF5252).withOpacity(0.6),
-                              width: 1.5,
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _drapeColor = color;
+                        _showDrapes = true; // Auto-enable drape overlay!
+                      });
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 12),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: _drapeColor == color && _showDrapes
+                                    ? Colors.greenAccent
+                                    : const Color(0xFFFF5252).withOpacity(0.6),
+                                width: _drapeColor == color && _showDrapes ? 2.0 : 1.5,
+                              ),
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.close_rounded,
+                                color: Color(0xFFFF5252),
+                                size: 14,
+                              ),
                             ),
                           ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.close_rounded,
-                              color: Color(0xFFFF5252),
-                              size: 14,
+                          const SizedBox(height: 4),
+                          Text(
+                            item['name']!,
+                            style: const TextStyle(
+                              color: Colors.white38,
+                              fontSize: 9.5,
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          item['name']!,
-                          style: const TextStyle(
-                            color: Colors.white38,
-                            fontSize: 9.5,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -1222,4 +1357,53 @@ class _LoadPaletteDialogState extends State<_LoadPaletteDialog> {
       ],
     );
   }
+}
+
+// =============================================================================
+// NeckDrapeClipper — Custom path clipper to outline drape fabric collar under chin
+// =============================================================================
+
+class NeckDrapeClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    // Starts at top-left
+    path.moveTo(0, 0);
+    // Curves down to form the collar hollow cutout under the face
+    path.quadraticBezierTo(
+      size.width / 2,
+      size.height * 0.55, // dip in the center for the chin/neck
+      size.width,
+      0,
+    );
+    // Line to bottom-right
+    path.lineTo(size.width, size.height);
+    // Line to bottom-left
+    path.lineTo(0, size.height);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+// =============================================================================
+// FabricTexturePainter — Custom painter drawing vertical stripes for linen texture
+// =============================================================================
+
+class FabricTexturePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.04)
+      ..strokeWidth = 1.0;
+    // Draw vertical stripes to simulate fine linen texture
+    for (double i = 0; i < size.width; i += 6) {
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

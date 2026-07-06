@@ -279,26 +279,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 8),
                   GlassCard(
                     color: Colors.white.withOpacity(0.05),
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.volume_off_rounded, color: Colors.white70, size: 20),
-                            SizedBox(width: 12),
-                            Text(
-                              'Mute AI Voice Output',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
-                            ),
-                          ],
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Icon(
+                                _muteVoiceOutput ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                                color: _muteVoiceOutput ? Colors.white60 : Colors.greenAccent,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Text(
+                                          'AI Voice Assistant',
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: _muteVoiceOutput
+                                                ? Colors.red.withOpacity(0.15)
+                                                : Colors.green.withOpacity(0.15),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            _muteVoiceOutput ? 'MUTED' : 'ENABLED',
+                                            style: TextStyle(
+                                              color: _muteVoiceOutput ? Colors.redAccent : Colors.greenAccent,
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 3),
+                                    const Text(
+                                      'Reads style reports and closet matching recommendations aloud.',
+                                      style: TextStyle(color: Colors.white38, fontSize: 11),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Switch(
-                          value: _muteVoiceOutput,
-                          activeColor: Theme.of(context).colorScheme.primary,
+                          value: !_muteVoiceOutput, // ON means voice is active (unmuted)
+                          activeColor: Colors.deepPurpleAccent,
+                          activeTrackColor: Colors.deepPurple.shade900,
                           onChanged: (val) {
                             setState(() {
-                              _muteVoiceOutput = val;
+                              _muteVoiceOutput = !val; // Toggle mute status accordingly
                             });
                           },
                         ),
