@@ -19,6 +19,12 @@
   <img src="https://img.shields.io/badge/Google%20ML%20Kit-Face-FF6F00?style=for-the-badge&logo=google&logoColor=white" alt="ML Kit Badge">
 </p>
 
+<p align="center">
+  <a href="USER_GUIDE.md">
+    <strong>📖 How to Use StyleTone-AI: Read the Interactive User Guide & Walkthrough</strong>
+  </a>
+</p>
+
 ---
 
 ## 📥 Download & Install
