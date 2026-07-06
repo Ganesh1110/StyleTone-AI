@@ -145,9 +145,7 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
     }
     _lastProcessedTime = now;
 
-    setState(() {
-      _isProcessing = true;
-    });
+    _isProcessing = true;
 
     try {
       final int width = image.width;
@@ -247,11 +245,7 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
     } catch (e) {
       debugPrint('Frame processing error: $e');
     } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
+      _isProcessing = false;
     }
   }
 

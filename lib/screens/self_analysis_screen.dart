@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 
@@ -141,7 +143,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
   Future<void> _decodeSelfie() async {
     try {
       final bytes = await widget.selfieFile.readAsBytes();
-      final decoded = img.decodeImage(bytes);
+      final decoded = await compute(_decodeImageBytes, bytes);
       if (decoded != null) {
         setState(() {
           _decodedImage = decoded;
@@ -1464,4 +1466,9 @@ class FabricTexturePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+// Top-level function for background isolate image decoding
+img.Image? _decodeImageBytes(Uint8List bytes) {
+  return img.decodeImage(bytes);
 }
