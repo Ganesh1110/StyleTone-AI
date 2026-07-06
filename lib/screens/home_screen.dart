@@ -9,6 +9,9 @@ import 'profile_screen.dart';
 import 'closet_screen.dart';
 import 'outfit_combinator_screen.dart';
 import 'live_matcher_screen.dart';
+import 'challenge_screen.dart';
+import 'trip_mode_screen.dart';
+import 'style_timeline_screen.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../widgets/glass_card.dart';
 
@@ -170,6 +173,43 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: theme.colorScheme.secondary,
                 onTap: _pickFromGallery,
               ),
+              const SizedBox(height: 24),
+              // Feature grid
+              const Text(
+                'Explore More',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white54),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _MiniFeatureCard(
+                      icon: Icons.emoji_events_rounded,
+                      label: 'Capsule\nChallenge',
+                      color: Colors.amber,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChallengeScreen())),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _MiniFeatureCard(
+                      icon: Icons.flight_rounded,
+                      label: 'Trip\nPacking',
+                      color: Colors.lightBlue,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TripModeScreen())),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _MiniFeatureCard(
+                      icon: Icons.timeline_rounded,
+                      label: 'Style\nTimeline',
+                      color: Colors.teal,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StyleTimelineScreen())),
+                    ),
+                  ),
+                ],
+              ),
               const Spacer(),
             ],
           ),
@@ -179,6 +219,51 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
 
+}
+
+class _MiniFeatureCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _MiniFeatureCard({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: GlassCard(
+        color: color.withOpacity(0.08),
+        border: Border.all(color: color.withOpacity(0.2)),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: color.withOpacity(0.9),
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
+      ).animate().scale(
+        curve: Curves.easeOutBack,
+        duration: 400.ms,
+      ),
+    );
+  }
 }
 
 class _OptionCard extends StatelessWidget {
