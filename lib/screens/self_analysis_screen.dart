@@ -871,7 +871,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                             Row(
                               children: [
                                 Text(
-                                  '$_detectedSeason Season',
+                                  _skinToneLabel(_detectedSeason),
                                   style: TextStyle(
                                     color: sColor,
                                     fontSize: 21,
@@ -1058,9 +1058,19 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
 
   // ─── Save / Lock Season Callback ──────────────────────────────────────────
 
+  String _skinToneLabel(String season) {
+    const labels = {
+      'Spring': 'Warm Golden/Peach Skin Tone',
+      'Summer': 'Cool Rosy/Pink Skin Tone',
+      'Autumn': 'Warm Bronze/Honey Skin Tone',
+      'Winter': 'Cool High-Contrast Skin Tone',
+    };
+    return labels[season] ?? '$season Season';
+  }
+
   Future<void> _lockManualSelection() async {
     final mockRec = ColorRecommendation(
-      detectedCategory: '$_detectedSeason Season',
+      detectedCategory: _skinToneLabel(_detectedSeason),
       confidence: 100,
       explanation:
           'Determined manually using the Interactive Self-Analysis color picker tool.',

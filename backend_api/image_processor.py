@@ -343,8 +343,15 @@ def process_selfie(base64_image: str, gender: str = "neutral"):
                 "message": _get_gendered_stylist_tip(detected_season, occ, gender),
             }
 
+        skin_tone_labels = {
+            "Spring": "Warm Golden/Peach Skin Tone",
+            "Summer": "Cool Rosy/Pink Skin Tone",
+            "Autumn": "Warm Bronze/Honey Skin Tone",
+            "Winter": "Cool High-Contrast Skin Tone",
+        }
+
         return {
-            "detected_category": f"{detected_season} Season",
+            "detected_category": skin_tone_labels.get(detected_season, f"{detected_season} Season"),
             "confidence": confidence,
             "explanation": explanation,
             "palettes": palettes_out,

@@ -535,10 +535,10 @@ class _ResultScreenState extends State<ResultScreen>
 
   String _extractBaseSeason(String detectedCategory) {
     final lower = detectedCategory.toLowerCase();
-    if (lower.contains('spring')) return 'spring';
-    if (lower.contains('summer')) return 'summer';
-    if (lower.contains('autumn')) return 'autumn';
-    if (lower.contains('winter')) return 'winter';
+    if (lower.contains('spring') || lower.contains('golden') || lower.contains('peach')) return 'spring';
+    if (lower.contains('summer') || lower.contains('rosy') || lower.contains('pink')) return 'summer';
+    if (lower.contains('autumn') || lower.contains('bronze') || lower.contains('honey')) return 'autumn';
+    if (lower.contains('winter') || lower.contains('high-contrast')) return 'winter';
     return '';
   }
 
