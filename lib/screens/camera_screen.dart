@@ -29,6 +29,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   late String _selectedOccasion;
   bool _isProcessing = false;
+  bool _isUsingFrontCamera = false;
 
   final FaceDetector _faceDetector = FaceDetector(
     options: FaceDetectorOptions(
@@ -38,12 +39,29 @@ class _CameraScreenState extends State<CameraScreen> {
     ),
   );
 
+  CameraDescription _getCamera() {
+    if (_isUsingFrontCamera) {
+      return widget.cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.front,
+        orElse: () => widget.cameras[0],
+      );
+    }
+    return widget.cameras.firstWhere(
+      (c) => c.lensDirection == CameraLensDirection.back,
+      orElse: () => widget.cameras[0],
+    );
+  }
+
+  void _initCamera() {
+    _controller = CameraController(_getCamera(), ResolutionPreset.medium);
+    _initializeControllerFuture = _controller.initialize();
+  }
+
   @override
   void initState() {
     super.initState();
     _selectedOccasion = widget.initialOccasion;
-    _controller = CameraController(widget.cameras[0], ResolutionPreset.medium);
-    _initializeControllerFuture = _controller.initialize();
+    _initCamera();
   }
 
   @override
@@ -51,6 +69,14 @@ class _CameraScreenState extends State<CameraScreen> {
     _controller.dispose();
     _faceDetector.close();
     super.dispose();
+  }
+
+  void _switchCamera() {
+    setState(() {
+      _isUsingFrontCamera = !_isUsingFrontCamera;
+      _controller.dispose();
+      _initCamera();
+    });
   }
 
   Future<void> _takePictureAndProcess() async {
@@ -155,6 +181,11 @@ class _CameraScreenState extends State<CameraScreen> {
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: Icon(_isUsingFrontCamera ? Icons.camera_rear : Icons.camera_front),
+            onPressed: _switchCamera,
+            tooltip: 'Switch Camera',
+          ),
           IconButton(
             icon: const Icon(Icons.photo_library),
             onPressed: _pickFromGallery,
