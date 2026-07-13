@@ -2,15 +2,12 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import base64
 import logging
 import re
 import ipaddress
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
-import cv2
-import numpy as np
 import requests
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException
@@ -19,10 +16,9 @@ from pydantic import BaseModel
 
 from image_processor import (
     compute_synergy,
-    get_color_name,
-    hex_to_rgb,
+    decode_base64_image,
+    extract_dominant_color,
     process_selfie,
-    rgb_to_hex,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,7 +28,6 @@ app = FastAPI(title="StyleAI Personal Server")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -85,8 +80,6 @@ def _is_safe_url(url: str) -> bool:
         logger.warning("URL validation error for %s: %s", url, e)
         return False
 
-
-# get_color_name and COLORS are now defined in image_processor.py and imported above.
 
 
 @app.post("/recommend")
@@ -170,61 +163,10 @@ async def analyze_clothing(request: ClothingRequest):
         raise HTTPException(status_code=400, detail="Image too large (max 10MB)")
 
     try:
-        img_data = request.image
-        if "," in img_data:
-            img_data = img_data.split(",")[1]
-
-        img_bytes = base64.b64decode(img_data)
-        np_arr = np.frombuffer(img_bytes, np.uint8)
-        img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-
+        img = decode_base64_image(request.image)
         if img is None:
             raise HTTPException(status_code=400, detail="Invalid image encoding")
-
-        h, w, _ = img.shape
-        cy, cx = h // 2, w // 2
-        dy, dx = int(h * 0.3), int(w * 0.3)
-        crop = img[cy - dy:cy + dy, cx - dx:cx + dx]
-
-        pixels = crop.reshape(-1, 3)
-        pixels = np.float32(pixels)
-
-        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-        compactness, labels, centers = cv2.kmeans(
-            pixels, 3, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS
-        )
-
-        unique_labels, counts = np.unique(labels, return_counts=True)
-        sorted_indices = np.argsort(-counts)
-
-        selected_bgr = None
-        for idx in sorted_indices:
-            bgr_center = centers[idx]
-            b, g, r = int(bgr_center[0]), int(bgr_center[1]), int(bgr_center[2])
-
-            is_white_bg = (
-                r > 220 and g > 220 and b > 220
-                and max(r, g, b) - min(r, g, b) < 20
-            )
-            is_black_bg = (r < 45 and g < 45 and b < 45)
-
-            if not is_white_bg and not is_black_bg:
-                selected_bgr = bgr_center
-                break
-
-        if selected_bgr is None:
-            selected_bgr = centers[sorted_indices[0]]
-
-        r, g, b = int(selected_bgr[2]), int(selected_bgr[1]), int(selected_bgr[0])
-
-        hex_color = '#{:02x}{:02x}{:02x}'.format(r, g, b)
-        color_name = get_color_name(r, g, b)
-
-        return {
-            "hex_color": hex_color,
-            "rgb": [r, g, b],
-            "color_name": color_name,
-        }
+        return extract_dominant_color(img)
 
     except HTTPException:
         raise
@@ -243,49 +185,15 @@ async def analyze_synergy(request: SynergyRequest):
         raise HTTPException(status_code=400, detail="Image too large (max 10 MB)")
 
     try:
-        img_data = request.image
-        if "," in img_data:
-            img_data = img_data.split(",")[1]
-
-        img_bytes = base64.b64decode(img_data)
-        np_arr = np.frombuffer(img_bytes, np.uint8)
-        img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        img = decode_base64_image(request.image)
         if img is None:
             raise HTTPException(status_code=400, detail="Invalid image encoding")
 
-        # --- K-Means dominant colour extraction (same as /analyze-clothing) ---
-        h, w, _ = img.shape
-        cy, cx = h // 2, w // 2
-        dy, dx = int(h * 0.3), int(w * 0.3)
-        crop = img[cy - dy:cy + dy, cx - dx:cx + dx]
-
-        pixels = crop.reshape(-1, 3).astype(np.float32)
-        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-        _, labels, centers = cv2.kmeans(
-            pixels, 3, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS
-        )
-        _, counts = np.unique(labels, return_counts=True)
-        sorted_idx = np.argsort(-counts)
-
-        selected_bgr = None
-        for idx in sorted_idx:
-            bgr = centers[idx]
-            b, g, r = int(bgr[0]), int(bgr[1]), int(bgr[2])
-            is_white = r > 220 and g > 220 and b > 220 and max(r, g, b) - min(r, g, b) < 20
-            is_black = r < 45 and g < 45 and b < 45
-            if not is_white and not is_black:
-                selected_bgr = bgr
-                break
-        if selected_bgr is None:
-            selected_bgr = centers[sorted_idx[0]]
-
-        r, g, b = int(selected_bgr[2]), int(selected_bgr[1]), int(selected_bgr[0])
-        new_hex = '#{:02x}{:02x}{:02x}'.format(r, g, b)
-        color_name = get_color_name(r, g, b)
+        dominant = extract_dominant_color(img)
 
         # --- Compute synergy against palette + wardrobe ----------------------
-        synergy = compute_synergy(new_hex, request.season, request.closet_items)
-        synergy["new_item_color_name"] = color_name
+        synergy = compute_synergy(dominant["hex_color"], request.season, request.closet_items)
+        synergy["new_item_color_name"] = dominant["color_name"]
 
         return synergy
 

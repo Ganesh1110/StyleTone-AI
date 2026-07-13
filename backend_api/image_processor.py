@@ -9,6 +9,102 @@ from sklearn.cluster import KMeans
 logger = logging.getLogger(__name__)
 
 
+def delta_e_2000(lab1: tuple[float, float, float], lab2: tuple[float, float, float]) -> float:
+    """CIEDE2000 colour-difference between two CIE L*a*b* samples.
+
+    Implementation follows the Sharma, Wu & Dalal (2005) paper.
+    Parametric factors kL = kC = kH = 1 (reference viewing conditions).
+    """
+    L1, a1, b1 = lab1
+    L2, a2, b2 = lab2
+
+    # Chroma
+    C1 = (a1 ** 2 + b1 ** 2) ** 0.5
+    C2 = (a2 ** 2 + b2 ** 2) ** 0.5
+    C_bar = (C1 + C2) / 2.0
+
+    # G (blue-hue adjustment)
+    C_bar7 = C_bar ** 7
+    G = 0.5 * (1.0 - (C_bar7 / (C_bar7 + 25 ** 7)) ** 0.5)
+
+    a1p = a1 * (1.0 + G)
+    a2p = a2 * (1.0 + G)
+
+    C1p = (a1p ** 2 + b1 ** 2) ** 0.5
+    C2p = (a2p ** 2 + b2 ** 2) ** 0.5
+
+    def _hp(a: float, b: float) -> float:
+        if a == 0.0 and b == 0.0:
+            return 0.0
+        h = np.degrees(np.arctan2(b, a))
+        return h if h >= 0.0 else h + 360.0
+
+    h1p = _hp(a1p, b1)
+    h2p = _hp(a2p, b2)
+
+    # Delta L', Delta C', Delta H'
+    dLp = L2 - L1
+    dCp = C2p - C1p
+    dhp = _compute_dhp(h1p, h2p, C1p, C2p)
+    dHp = 2.0 * (C1p * C2p) ** 0.5 * np.sin(np.radians(dhp / 2.0))
+
+    # Lightness-weighting function SL
+    L_bar = (L1 + L2) / 2.0
+    SL = 1.0 + (0.015 * (L_bar - 50.0) ** 2) / (20.0 + (L_bar - 50.0) ** 2) ** 0.5
+
+    # Chroma-weighting function SC
+    Cp_bar = (C1p + C2p) / 2.0
+    SC = 1.0 + 0.045 * Cp_bar
+
+    # Hue-weighting function SH
+    h_bar = _compute_hp_bar(h1p, h2p, C1p, C2p)
+    T = (
+        1.0
+        - 0.17 * np.cos(np.radians(h_bar - 30.0))
+        + 0.24 * np.cos(np.radians(2.0 * h_bar))
+        + 0.32 * np.cos(np.radians(3.0 * h_bar + 6.0))
+        - 0.20 * np.cos(np.radians(4.0 * h_bar - 63.0))
+    )
+    SH = 1.0 + 0.015 * Cp_bar * T
+
+    # Rotation term RT
+    dtheta = 30.0 * np.exp(-(((h_bar - 275.0) / 25.0) ** 2))
+    Cp_bar7 = Cp_bar ** 7
+    RC = 2.0 * (Cp_bar7 / (Cp_bar7 + 25 ** 7)) ** 0.5
+    RT = -RC * np.sin(np.radians(2.0 * dtheta))
+
+    # Parametric factors (reference conditions → 1.0)
+    kL = kC = kH = 1.0
+
+    return ((dLp / (kL * SL)) ** 2
+            + (dCp / (kC * SC)) ** 2
+            + (dHp / (kH * SH)) ** 2
+            + RT * (dCp / (kC * SC)) * (dHp / (kH * SH))) ** 0.5
+
+
+def _compute_dhp(h1p: float, h2p: float, C1p: float, C2p: float) -> float:
+    """Hue-angle difference in degrees."""
+    if C1p * C2p == 0.0:
+        return 0.0
+    dhp = h2p - h1p
+    if dhp > 180.0:
+        dhp -= 360.0
+    elif dhp < -180.0:
+        dhp += 360.0
+    return dhp
+
+
+def _compute_hp_bar(h1p: float, h2p: float, C1p: float, C2p: float) -> float:
+    """Mean hue angle in degrees."""
+    if C1p * C2p == 0.0:
+        return h1p + h2p
+    if abs(h1p - h2p) <= 180.0:
+        return (h1p + h2p) / 2.0
+    if (h1p + h2p) < 360.0:
+        return (h1p + h2p + 360.0) / 2.0
+    return (h1p + h2p - 360.0) / 2.0
+
+
 def hex_to_rgb(hex_code):
     hex_code = hex_code.lstrip('#')
     return tuple(int(hex_code[i:i+2], 16) for i in (0, 2, 4))
@@ -16,6 +112,58 @@ def hex_to_rgb(hex_code):
 
 def rgb_to_hex(rgb):
     return '#{:02x}{:02x}{:02x}'.format(int(rgb[0]), int(rgb[1]), int(rgb[2]))
+
+
+def decode_base64_image(b64_string: str) -> np.ndarray:
+    """Decode a base64 image string (optionally with a data URI prefix) into an OpenCV BGR array."""
+    if "," in b64_string:
+        b64_string = b64_string.split(",")[1]
+    try:
+        img_bytes = base64.b64decode(b64_string)
+    except Exception:
+        return None
+    np_arr = np.frombuffer(img_bytes, np.uint8)
+    img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+    return img
+
+
+def extract_dominant_color(img: np.ndarray) -> dict:
+    """Extract the dominant non-white/non-black colour from an image via centre-crop K-Means.
+
+    Returns a dict with keys: hex_color, rgb (list), color_name.
+    """
+    h, w, _ = img.shape
+    cy, cx = h // 2, w // 2
+    dy, dx = int(h * 0.3), int(w * 0.3)
+    crop = img[cy - dy:cy + dy, cx - dx:cx + dx]
+
+    pixels = crop.reshape(-1, 3).astype(np.float32)
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+    _, labels, centers = cv2.kmeans(pixels, 3, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+    _, counts = np.unique(labels, return_counts=True)
+    sorted_idx = np.argsort(-counts)
+
+    selected_bgr = None
+    for idx in sorted_idx:
+        bgr = centers[idx]
+        b, g, r = int(bgr[0]), int(bgr[1]), int(bgr[2])
+        is_white = r > 220 and g > 220 and b > 220 and max(r, g, b) - min(r, g, b) < 20
+        is_black = r < 45 and g < 45 and b < 45
+        if not is_white and not is_black:
+            selected_bgr = bgr
+            break
+    if selected_bgr is None:
+        selected_bgr = centers[sorted_idx[0]]
+
+    r, g, b = int(selected_bgr[2]), int(selected_bgr[1]), int(selected_bgr[0])
+    hex_color = '#{:02x}{:02x}{:02x}'.format(r, g, b)
+    color_name = get_color_name(r, g, b)
+
+    return {
+        "hex_color": hex_color,
+        "rgb": [r, g, b],
+        "color_name": color_name,
+    }
 
 
 def adjust_color_for_occasion(hex_color, occasion):
@@ -292,18 +440,20 @@ def process_selfie(base64_image: str, gender: str = "neutral"):
         a_val = float(skin_lab_pixel[1])
         b_val = float(skin_lab_pixel[2])
 
-        # --- SEASONAL CLASSIFICATION via CIE76 Delta E ---
+        # --- SEASONAL CLASSIFICATION via CIEDE2000 ---
+        skin_lab = (l_val, a_val, b_val)
         distances = {}
         for season, anchors in SEASON_ANCHORS_RGB.items():
             min_dist = float('inf')
             for r, g, bv in anchors:
                 anchor_bgr = np.uint8([[[bv, g, r]]])
-                anchor_lab = cv2.cvtColor(anchor_bgr, cv2.COLOR_BGR2LAB)[0][0]
-                dist = np.sqrt(
-                    (l_val - float(anchor_lab[0])) ** 2 +
-                    (a_val - float(anchor_lab[1])) ** 2 +
-                    (b_val - float(anchor_lab[2])) ** 2
+                anchor_lab_vec = cv2.cvtColor(anchor_bgr, cv2.COLOR_BGR2LAB)[0][0]
+                anchor_lab = (
+                    float(anchor_lab_vec[0]),
+                    float(anchor_lab_vec[1]),
+                    float(anchor_lab_vec[2]),
                 )
+                dist = delta_e_2000(skin_lab, anchor_lab)
                 if dist < min_dist:
                     min_dist = dist
             distances[season] = min_dist
