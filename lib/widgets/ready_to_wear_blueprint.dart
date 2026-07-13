@@ -350,10 +350,13 @@ class _ReadyToWearBlueprintSheetState
         .withSaturation((hsl.saturation * 0.1).clamp(0.0, 1.0))
         .withLightness(0.12)
         .toColor();
+    final darkR = (darkNeutral.r * 255).round().clamp(0, 255);
+    final darkG = (darkNeutral.g * 255).round().clamp(0, 255);
+    final darkB = (darkNeutral.b * 255).round().clamp(0, 255);
     final darkHex = '#'
-        '${darkNeutral.red.toRadixString(16).padLeft(2, '0')}'
-        '${darkNeutral.green.toRadixString(16).padLeft(2, '0')}'
-        '${darkNeutral.blue.toRadixString(16).padLeft(2, '0')}';
+        '${darkR.toRadixString(16).padLeft(2, '0')}'
+        '${darkG.toRadixString(16).padLeft(2, '0')}'
+        '${darkB.toRadixString(16).padLeft(2, '0')}';
 
     switch (occasionKey) {
       case 'office':

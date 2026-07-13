@@ -9,6 +9,9 @@ import '../models/color_recommendation.dart';
 import '../services/history_service.dart';
 import '../widgets/neck_drape_clipper.dart';
 import '../widgets/fabric_texture_painter.dart';
+import '../widgets/tooltip_arrow_painter.dart';
+import '../widgets/load_palette_dialog.dart';
+import '../widgets/season_palette_panel.dart';
 
 // =============================================================================
 // SelfAnalysisScreen — Manual season discovery via pixel color droppers
@@ -398,7 +401,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                                                             ),
                                                       ),
                                                       child: Text(
-                                                        'Drape: #${_drapeColor.value.toRadixString(16).substring(2).toUpperCase()}',
+                                                        'Drape: #${_drapeColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
                                                         style: const TextStyle(
                                                           color: Colors.white,
                                                           fontSize: 9,
@@ -550,7 +553,23 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                 ),
 
                 _buildColorBar(),
-                _buildBottomPalettePanel(),
+                SeasonPalettePanel(
+                  detectedSeason: _detectedSeason,
+                  seasonalPalettes: _seasonalPalettes,
+                  avoidPalettes: _avoidPalettes,
+                  drapeColor: _drapeColor,
+                  showDrapes: _showDrapes,
+                  skinToneLabel: _skinToneLabel,
+                  seasonColor: _seasonColor,
+                  onLoadPaletteTap: _showLoadPaletteDialog,
+                  onSaveProfile: _lockManualSelection,
+                  onColorSelected: (color) {
+                    setState(() {
+                      _drapeColor = color;
+                      _showDrapes = true;
+                    });
+                  },
+                ),
               ],
             ),
     );
@@ -733,7 +752,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
             // Tooltip pointer arrow
             CustomPaint(
               size: const Size(6, 4),
-              painter: _TooltipArrowPainter(),
+              painter: TooltipArrowPainter(),
             ),
           ],
         ),
@@ -745,7 +764,8 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
     showDialog(
       context: context,
       builder: (context) {
-        return _LoadPaletteDialog(
+        return LoadPaletteDialog(
+          seasonalPalettes: _seasonalPalettes,
           initialSeason: _detectedSeason,
           onSeasonSelected: (String newSeason) {
             setState(() {
@@ -800,7 +820,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
     bool active,
     VoidCallback onTap,
   ) {
-    final hex = '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+    final hex = '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -853,241 +873,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
 
   // ─── Seasonal Palette Panel ───────────────────────────────────────────────
 
-  Widget _buildBottomPalettePanel() {
-    final pal =
-        _seasonalPalettes[_detectedSeason] ?? _seasonalPalettes['Autumn']!;
-    final avoid = _avoidPalettes[_detectedSeason] ?? _avoidPalettes['Autumn']!;
-    final sColor = _seasonColor(_detectedSeason);
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF130D2E),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Calculated Season (InkWell clickable to load palette)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                InkWell(
-                  onTap: _showLoadPaletteDialog,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 4,
-                    ),
-                    child: Row(
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Calculated Season Profile',
-                              style: TextStyle(
-                                color: Colors.white38,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Row(
-                              children: [
-                                SizedBox(
-                                  width: 180,
-                                  child: Text(
-                                    _skinToneLabel(_detectedSeason),
-                                    style: TextStyle(
-                                      color: sColor,
-                                      fontSize: 21,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Icon(
-                                  Icons.edit_note_rounded,
-                                  color: sColor.withValues(alpha: 0.8),
-                                  size: 20,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // Lock Season button
-                ElevatedButton.icon(
-                  onPressed: _lockManualSelection,
-                  icon: const Icon(Icons.check_circle_outline, size: 16),
-                  label: const Text('Save Profile'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-
-            // 1. BEST COLORS SECTION
-            const Text(
-              'Best Colors',
-              style: TextStyle(
-                color: Colors.greenAccent,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.3,
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 70,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: pal.length,
-                itemBuilder: (context, index) {
-                  final item = pal[index];
-                  final color = Color(
-                    int.parse(item['hex']!.replaceFirst('#', '0xFF')),
-                  );
-
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _drapeColor = color;
-                        _showDrapes = true; // Auto-enable drape overlay!
-                      });
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 12),
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: color,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: _drapeColor == color && _showDrapes
-                                    ? Colors.greenAccent
-                                    : Colors.white24,
-                                width: _drapeColor == color && _showDrapes
-                                    ? 2.0
-                                    : 1.0,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            item['name']!,
-                            style: const TextStyle(
-                              color: Colors.white38,
-                              fontSize: 9.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // 2. COLORS TO AVOID SECTION
-            const Text(
-              'Colors to Avoid',
-              style: TextStyle(
-                color: Color(0xFFFF5252),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.3,
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 70,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: avoid.length,
-                itemBuilder: (context, index) {
-                  final item = avoid[index];
-                  final color = Color(
-                    int.parse(item['hex']!.replaceFirst('#', '0xFF')),
-                  );
-
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _drapeColor = color;
-                        _showDrapes = true; // Auto-enable drape overlay!
-                      });
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 12),
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: color,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: _drapeColor == color && _showDrapes
-                                    ? Colors.greenAccent
-                                    : const Color(0xFFFF5252).withValues(alpha: 0.6),
-                                width: _drapeColor == color && _showDrapes
-                                    ? 2.0
-                                    : 1.5,
-                              ),
-                            ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.close_rounded,
-                                color: Color(0xFFFF5252),
-                                size: 14,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            item['name']!,
-                            style: const TextStyle(
-                              color: Colors.white38,
-                              fontSize: 9.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   // ─── Save / Lock Season Callback ──────────────────────────────────────────
 
@@ -1230,235 +1016,6 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
       default:
         return Colors.grey;
     }
-  }
-}
-
-// ─── Custom Painter for Tooltip Pointer ──────────────────────────────────────
-
-class _TooltipArrowPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.black.withValues(alpha: 0.85)
-      ..style = PaintingStyle.fill;
-    final path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width, 0)
-      ..lineTo(size.width / 2, size.height)
-      ..close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
-}
-
-// =============================================================================
-// Load Palette Selection Dialog — 12 sub-seasons selection overlay
-// =============================================================================
-
-class _LoadPaletteDialog extends StatefulWidget {
-  final String initialSeason;
-  final ValueChanged<String> onSeasonSelected;
-
-  const _LoadPaletteDialog({
-    required this.initialSeason,
-    required this.onSeasonSelected,
-  });
-
-  @override
-  State<_LoadPaletteDialog> createState() => _LoadPaletteDialogState();
-}
-
-class _LoadPaletteDialogState extends State<_LoadPaletteDialog> {
-  late String _selectedSubSeason;
-
-  static const List<String> _subSeasons = [
-    'Clear Winter',
-    'Cool Winter',
-    'Deep Winter',
-    'Soft Summer',
-    'Cool Summer',
-    'Light Summer',
-    'Clear Spring',
-    'Warm Spring',
-    'Light Spring',
-    'Soft Autumn',
-    'Warm Autumn',
-    'Deep Autumn',
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedSubSeason = 'Warm ${_selectedMainSeason(widget.initialSeason)}';
-    if (!_subSeasons.contains(_selectedSubSeason)) {
-      _selectedSubSeason = _subSeasons.firstWhere(
-        (s) => s.contains(widget.initialSeason),
-        orElse: () => _subSeasons[0],
-      );
-    }
-  }
-
-  String _selectedMainSeason(String sub) {
-    if (sub.contains('Winter')) return 'Winter';
-    if (sub.contains('Summer')) return 'Summer';
-    if (sub.contains('Spring')) return 'Spring';
-    return 'Autumn';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final main = _selectedMainSeason(_selectedSubSeason);
-    final pal = _SelfAnalysisScreenState._seasonalPalettes[main] ?? [];
-
-    return AlertDialog(
-      backgroundColor: const Color(0xFF130D2E),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(
-            'Load Palette',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close_rounded, color: Colors.white70),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
-      ),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Choose a palette to load it into the Self-Analysis Studio.',
-              style: TextStyle(
-                color: Colors.white54,
-                fontSize: 13,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              '12-Season Palettes',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            Flexible(
-              child: SizedBox(
-                height: 280,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _subSeasons.length,
-                  itemBuilder: (context, index) {
-                    final sub = _subSeasons[index];
-                    final isSel = _selectedSubSeason == sub;
-                    return InkWell(
-                      onTap: () => setState(() => _selectedSubSeason = sub),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 8.0,
-                          horizontal: 4.0,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              isSel
-                                  ? Icons.radio_button_checked_rounded
-                                  : Icons.radio_button_off_rounded,
-                              color: isSel
-                                  ? Colors.deepPurpleAccent
-                                  : Colors.white54,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              sub,
-                              style: TextStyle(
-                                color: isSel ? Colors.white : Colors.white70,
-                                fontWeight: isSel
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-            const Divider(color: Colors.white12, height: 24),
-
-            const Text(
-              'Palette Preview',
-              style: TextStyle(color: Colors.white54, fontSize: 12),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 30,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: pal.length,
-                itemBuilder: (context, index) {
-                  final color = Color(
-                    int.parse(pal[index]['hex']!.replaceFirst('#', '0xFF')),
-                  );
-                  return Container(
-                    margin: const EdgeInsets.only(right: 6),
-                    width: 30,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      actions: [
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton(
-            onPressed: () {
-              widget.onSeasonSelected(main);
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepPurpleAccent,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              'OK',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }
 

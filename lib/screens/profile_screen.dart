@@ -398,7 +398,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             const SizedBox(width: 8),
                             Switch(
                               value: !_muteVoiceOutput,
-                              activeColor: cs.primary,
+                              activeThumbColor: cs.primary,
                               activeTrackColor: cs.primary.withValues(alpha: 0.5),
                               onChanged: (val) {
                                 setState(() {

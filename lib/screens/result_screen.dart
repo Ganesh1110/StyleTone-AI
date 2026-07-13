@@ -153,11 +153,12 @@ class _ResultScreenState extends State<ResultScreen>
 
   Future<ColorRecommendation?> _tryOfflineAnalysis() async {
     try {
+      final profile = await ProfileService().getProfile();
       final bytes = await widget.imageFile.readAsBytes();
       final decoded = img.decodeImage(bytes);
       if (decoded == null) return null;
       final resized = img.copyResize(decoded, width: 400, height: 400);
-      final data = await processSelfie(resized);
+      final data = await processSelfie(resized, gender: profile.gender);
       if (data == null) return null;
       return ColorRecommendation.fromJson(data);
     } catch (_) {
