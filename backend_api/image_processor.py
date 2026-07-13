@@ -105,16 +105,16 @@ def _compute_hp_bar(h1p: float, h2p: float, C1p: float, C2p: float) -> float:
     return (h1p + h2p - 360.0) / 2.0
 
 
-def hex_to_rgb(hex_code):
+def hex_to_rgb(hex_code: str) -> tuple[int, int, int]:
     hex_code = hex_code.lstrip('#')
     return tuple(int(hex_code[i:i+2], 16) for i in (0, 2, 4))
 
 
-def rgb_to_hex(rgb):
+def rgb_to_hex(rgb: tuple[int, int, int]) -> str:
     return '#{:02x}{:02x}{:02x}'.format(int(rgb[0]), int(rgb[1]), int(rgb[2]))
 
 
-def decode_base64_image(b64_string: str) -> np.ndarray:
+def decode_base64_image(b64_string: str) -> np.ndarray | None:
     """Decode a base64 image string (optionally with a data URI prefix) into an OpenCV BGR array."""
     if "," in b64_string:
         b64_string = b64_string.split(",")[1]
@@ -166,7 +166,7 @@ def extract_dominant_color(img: np.ndarray) -> dict:
     }
 
 
-def adjust_color_for_occasion(hex_color, occasion):
+def adjust_color_for_occasion(hex_color: str, occasion: str) -> str:
     r, g, b = hex_to_rgb(hex_color)
     h, s, v = colorsys.rgb_to_hsv(r / 255.0, g / 255.0, b / 255.0)
     if occasion == "office":
@@ -181,7 +181,7 @@ def adjust_color_for_occasion(hex_color, occasion):
     return rgb_to_hex((r * 255, g * 255, b * 255))
 
 
-def _get_cascade_path():
+def _get_cascade_path() -> str:
     """Return a path to haarcascade_frontalface_default.xml,
     preferring a local copy over the OpenCV data directory."""
     local_path = os.path.join(
@@ -196,7 +196,7 @@ def _get_cascade_path():
         return local_path
 
 
-def _detect_face(img):
+def _detect_face(img: np.ndarray) -> np.ndarray:
     """Detect the largest face and return a cropped region expanded by 30%.
     Falls back to returning the full image if face detection is unavailable."""
     cascade_path = _get_cascade_path()
@@ -353,7 +353,7 @@ def _adjust_for_skin_tone(hex_color: str, l_val: float) -> str:
     return rgb_to_hex((r * 255, g * 255, b * 255))
 
 
-def process_selfie(base64_image: str, gender: str = "neutral"):
+def process_selfie(base64_image: str, gender: str = "neutral") -> dict:
     try:
         if base64_image.startswith("data:image"):
             base64_image = base64_image.split(",")[1]

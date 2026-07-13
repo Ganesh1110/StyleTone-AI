@@ -7,6 +7,8 @@ import 'package:image/image.dart' as img;
 
 import '../models/color_recommendation.dart';
 import '../services/history_service.dart';
+import '../widgets/neck_drape_clipper.dart';
+import '../widgets/fabric_texture_painter.dart';
 
 // =============================================================================
 // SelfAnalysisScreen — Manual season discovery via pixel color droppers
@@ -1458,55 +1460,6 @@ class _LoadPaletteDialogState extends State<_LoadPaletteDialog> {
       ],
     );
   }
-}
-
-// =============================================================================
-// NeckDrapeClipper — Custom path clipper to outline drape fabric collar under chin
-// =============================================================================
-
-class NeckDrapeClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    // Starts at top-left
-    path.moveTo(0, 0);
-    // Curves down to form the collar hollow cutout under the face
-    path.quadraticBezierTo(
-      size.width / 2,
-      size.height * 0.55, // dip in the center for the chin/neck
-      size.width,
-      0,
-    );
-    // Line to bottom-right
-    path.lineTo(size.width, size.height);
-    // Line to bottom-left
-    path.lineTo(0, size.height);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
-// =============================================================================
-// FabricTexturePainter — Custom painter drawing vertical stripes for linen texture
-// =============================================================================
-
-class FabricTexturePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.04)
-      ..strokeWidth = 1.0;
-    // Draw vertical stripes to simulate fine linen texture
-    for (double i = 0; i < size.width; i += 6) {
-      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
 
 // Top-level function for background isolate image decoding

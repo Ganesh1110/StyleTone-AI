@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +8,7 @@ import '../models/closet_item.dart';
 import '../models/synergy_result.dart';
 import '../services/api_service.dart';
 import '../services/database_helper.dart';
+import '../widgets/synergy_ring_painter.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ClosetSynergyScreen — Smart Shop Synergy feature entry point
@@ -572,7 +572,7 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
               height: 170,
               child: CustomPaint(
                 painter:
-                    _RingPainter(value: value, color: scoreColor),
+                    SynergyRingPainter(value: value, color: scoreColor),
                 child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -940,62 +940,4 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Custom painter for the animated synergy score ring
-// ─────────────────────────────────────────────────────────────────────────────
 
-class _RingPainter extends CustomPainter {
-  final double value;
-  final Color color;
-
-  const _RingPainter({required this.value, required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 12;
-
-    // Background track
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..color = Colors.white.withOpacity(0.07)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 13,
-    );
-
-    if (value <= 0) return;
-
-    // Glow layer
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -pi / 2,
-      2 * pi * value,
-      false,
-      Paint()
-        ..color = color.withOpacity(0.22)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 24
-        ..strokeCap = StrokeCap.round
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
-    );
-
-    // Solid score arc
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -pi / 2,
-      2 * pi * value,
-      false,
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 13
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_RingPainter old) =>
-      old.value != value || old.color != color;
-}

@@ -56,31 +56,6 @@ class DatabaseHelper {
     ''');
 
     await db.execute('''
-      CREATE TABLE challenges (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        description TEXT NOT NULL,
-        totalDays INTEGER NOT NULL,
-        daysCompleted INTEGER NOT NULL DEFAULT 0,
-        startDate TEXT NOT NULL,
-        isActive INTEGER NOT NULL DEFAULT 0,
-        isCompleted INTEGER NOT NULL DEFAULT 0,
-        badgeName TEXT
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE challenge_progress (
-        challengeId TEXT NOT NULL,
-        dayNumber INTEGER NOT NULL,
-        isCompleted INTEGER NOT NULL DEFAULT 0,
-        completedDate TEXT,
-        PRIMARY KEY (challengeId, dayNumber),
-        FOREIGN KEY (challengeId) REFERENCES challenges(id)
-      )
-    ''');
-
-    await db.execute('''
       CREATE TABLE trips (
         id TEXT PRIMARY KEY,
         destination TEXT NOT NULL,
@@ -120,31 +95,6 @@ class DatabaseHelper {
     }
     if (oldVersion < 3) {
       await db.execute('''
-        CREATE TABLE challenges (
-          id TEXT PRIMARY KEY,
-          title TEXT NOT NULL,
-          description TEXT NOT NULL,
-          totalDays INTEGER NOT NULL,
-          daysCompleted INTEGER NOT NULL DEFAULT 0,
-          startDate TEXT NOT NULL,
-          isActive INTEGER NOT NULL DEFAULT 0,
-          isCompleted INTEGER NOT NULL DEFAULT 0,
-          badgeName TEXT,
-          capsuleItemIds TEXT DEFAULT '',
-          seasonPaletteJson TEXT
-        )
-      ''');
-      await db.execute('''
-        CREATE TABLE challenge_progress (
-          challengeId TEXT NOT NULL,
-          dayNumber INTEGER NOT NULL,
-          isCompleted INTEGER NOT NULL DEFAULT 0,
-          completedDate TEXT,
-          PRIMARY KEY (challengeId, dayNumber),
-          FOREIGN KEY (challengeId) REFERENCES challenges(id)
-        )
-      ''');
-      await db.execute('''
         CREATE TABLE trips (
           id TEXT PRIMARY KEY,
           destination TEXT NOT NULL,
@@ -166,16 +116,7 @@ class DatabaseHelper {
           metadata TEXT
         )
       ''');
-      debugPrint('SQLite database upgraded to version 3: added challenges, trips, timeline tables');
-    }
-    if (oldVersion < 4) {
-      try {
-        await db.execute('ALTER TABLE challenges ADD COLUMN capsuleItemIds TEXT DEFAULT \'\'');
-      } catch (_) {}
-      try {
-        await db.execute('ALTER TABLE challenges ADD COLUMN seasonPaletteJson TEXT');
-      } catch (_) {}
-      debugPrint('SQLite database upgraded to version 4: added capsuleItemIds, seasonPaletteJson columns');
+      debugPrint('SQLite database upgraded to version 3: added trips, timeline tables');
     }
   }
 
