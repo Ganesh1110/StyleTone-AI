@@ -322,8 +322,11 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                                       child: GestureDetector(
                                         onVerticalDragUpdate: (details) {
                                           setState(() {
-                                            final double deltaY = details.delta.dy / size.height;
-                                            _drapeNormalizedY = (_drapeNormalizedY + deltaY).clamp(0.4, 0.95);
+                                            final double deltaY =
+                                                details.delta.dy / size.height;
+                                            _drapeNormalizedY =
+                                                (_drapeNormalizedY + deltaY)
+                                                    .clamp(0.4, 0.95);
                                           });
                                         },
                                         child: ClipPath(
@@ -344,37 +347,62 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                                                 // Subtle fine linen texture lines
                                                 Positioned.fill(
                                                   child: CustomPaint(
-                                                    painter: FabricTexturePainter(),
+                                                    painter:
+                                                        FabricTexturePainter(),
                                                   ),
                                                 ),
                                                 // Drag handle bar indicator at top center
                                                 Align(
-                                                  alignment: Alignment.topCenter,
+                                                  alignment:
+                                                      Alignment.topCenter,
                                                   child: Padding(
-                                                    padding: const EdgeInsets.only(top: 8.0),
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          top: 8.0,
+                                                        ),
                                                     child: Container(
                                                       width: 36,
                                                       height: 4,
                                                       decoration: BoxDecoration(
                                                         color: Colors.white60,
-                                                        borderRadius: BorderRadius.circular(2),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              2,
+                                                            ),
                                                       ),
                                                     ),
                                                   ),
                                                 ),
                                                 Align(
-                                                  alignment: Alignment.bottomCenter,
+                                                  alignment:
+                                                      Alignment.bottomCenter,
                                                   child: Padding(
-                                                    padding: const EdgeInsets.only(bottom: 6.0),
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          bottom: 6.0,
+                                                        ),
                                                     child: Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 3,
+                                                          ),
                                                       decoration: BoxDecoration(
-                                                        color: Colors.black.withOpacity(0.5),
-                                                        borderRadius: BorderRadius.circular(6),
+                                                        color: Colors.black
+                                                            .withOpacity(0.5),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              6,
+                                                            ),
                                                       ),
                                                       child: Text(
                                                         'Drape: #${_drapeColor.value.toRadixString(16).substring(2).toUpperCase()}',
-                                                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 9,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
                                                       ),
                                                     ),
                                                   ),
@@ -870,12 +898,15 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                             const SizedBox(height: 3),
                             Row(
                               children: [
-                                Text(
-                                  _skinToneLabel(_detectedSeason),
-                                  style: TextStyle(
-                                    color: sColor,
-                                    fontSize: 21,
-                                    fontWeight: FontWeight.bold,
+                                SizedBox(
+                                  width: 180,
+                                  child: Text(
+                                    _skinToneLabel(_detectedSeason),
+                                    style: TextStyle(
+                                      color: sColor,
+                                      fontSize: 21,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 6),
