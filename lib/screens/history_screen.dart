@@ -106,7 +106,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               Icon(
                 Icons.history_toggle_off_rounded,
                 size: 72,
-                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
               ),
               const SizedBox(height: 16),
               Text(
@@ -162,7 +162,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
-                  color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
                 ),
               ),
               child: InkWell(
@@ -217,7 +217,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                     vertical: 3,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.deepPurple.withOpacity(0.1),
+                                    color: Colors.deepPurple.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(

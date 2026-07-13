@@ -312,7 +312,7 @@ class _ClosetScreenState extends State<ClosetScreen>
                       return ChoiceChip(
                         label: Text(cat['label']!),
                         selected: isSelected,
-                        selectedColor: Colors.deepPurple.withOpacity(0.15),
+                        selectedColor: Colors.deepPurple.withValues(alpha: 0.15),
                         labelStyle: TextStyle(
                           color: isSelected
                               ? Colors.deepPurple
@@ -527,7 +527,7 @@ class _ClosetScreenState extends State<ClosetScreen>
         final color = Color(int.parse(item.hexColor.replaceFirst('#', '0xFF')));
 
         return GlassCard(
-          color: Colors.white.withOpacity(0.05),
+          color: Colors.white.withValues(alpha: 0.05),
           padding: EdgeInsets.zero,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

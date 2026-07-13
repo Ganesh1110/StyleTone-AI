@@ -150,7 +150,7 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
                   ),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                      color: Colors.deepPurple.shade300.withOpacity(0.3)),
+                      color: Colors.deepPurple.shade300.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -187,7 +187,7 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.deepPurple.withOpacity(0.5),
+                    color: Colors.deepPurple.withValues(alpha: 0.5),
                     blurRadius: 44,
                     spreadRadius: 14,
                   ),
@@ -229,10 +229,10 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.04),
+                  color: Colors.white.withValues(alpha: 0.04),
                   borderRadius: BorderRadius.circular(12),
                   border:
-                      Border.all(color: Colors.white.withOpacity(0.08)),
+                      Border.all(color: Colors.white.withValues(alpha: 0.08)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -271,7 +271,7 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16)),
                   elevation: 10,
-                  shadowColor: Colors.deepPurple.withOpacity(0.5),
+                  shadowColor: Colors.deepPurple.withValues(alpha: 0.5),
                 ),
               ),
             ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.2, end: 0),
@@ -294,7 +294,7 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
                 ),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(
-                      color: Colors.deepPurple.shade400.withOpacity(0.5),
+                      color: Colors.deepPurple.shade400.withValues(alpha: 0.5),
                       width: 1.5),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16)),
@@ -311,9 +311,9 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.amber.withOpacity(0.1),
+        color: Colors.amber.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.amber.withOpacity(0.3)),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -434,7 +434,7 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
               label: const Text('Check Another Item',
                   style: TextStyle(color: Colors.white60, fontSize: 14)),
               style: OutlinedButton.styleFrom(
-                side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
               ),
@@ -450,9 +450,9 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.09)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
       ),
       child: Row(
         children: [
@@ -536,15 +536,15 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.deepPurple.shade900.withOpacity(0.85),
-            Colors.indigo.shade900.withOpacity(0.85),
+            Colors.deepPurple.shade900.withValues(alpha: 0.85),
+            Colors.indigo.shade900.withValues(alpha: 0.85),
           ],
         ),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: scoreColor.withOpacity(0.3)),
+        border: Border.all(color: scoreColor.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-              color: scoreColor.withOpacity(0.12),
+              color: scoreColor.withValues(alpha: 0.12),
               blurRadius: 24,
               spreadRadius: 2),
         ],
@@ -603,9 +603,9 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
             padding:
                 const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
             decoration: BoxDecoration(
-              color: scoreColor.withOpacity(0.12),
+              color: scoreColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: scoreColor.withOpacity(0.4)),
+              border: Border.all(color: scoreColor.withValues(alpha: 0.4)),
             ),
             child: Text(scoreLabel,
                 style: TextStyle(
@@ -621,10 +621,10 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
               padding: const EdgeInsets.symmetric(
                   horizontal: 20, vertical: 13),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                    color: Colors.white.withOpacity(0.09)),
+                    color: Colors.white.withValues(alpha: 0.09)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -698,9 +698,9 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
+        color: Colors.white.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.07)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
       ),
       child: Row(
         children: [
@@ -740,7 +740,7 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
             padding: const EdgeInsets.symmetric(
                 horizontal: 9, vertical: 5),
             decoration: BoxDecoration(
-              color: scoreC.withOpacity(0.15),
+              color: scoreC.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text('${combo.matchScore}%',
@@ -796,12 +796,12 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.teal.withOpacity(0.09),
-            Colors.cyan.withOpacity(0.04)
+            Colors.teal.withValues(alpha: 0.09),
+            Colors.cyan.withValues(alpha: 0.04)
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.tealAccent.withOpacity(0.22)),
+        border: Border.all(color: Colors.tealAccent.withValues(alpha: 0.22)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -817,7 +817,7 @@ class _ClosetSynergyScreenState extends State<ClosetSynergyScreen> {
                   border: Border.all(color: Colors.white24),
                   boxShadow: [
                     BoxShadow(
-                        color: c.withOpacity(0.35),
+                        color: c.withValues(alpha: 0.35),
                         blurRadius: 10,
                         spreadRadius: 1)
                   ],

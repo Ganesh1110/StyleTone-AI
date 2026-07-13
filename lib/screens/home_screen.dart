@@ -229,8 +229,8 @@ class _MiniFeatureCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: GlassCard(
-        color: color.withOpacity(0.08),
-        border: Border.all(color: color.withOpacity(0.2)),
+        color: color.withValues(alpha: 0.08),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
         child: Column(
           children: [
@@ -240,7 +240,7 @@ class _MiniFeatureCard extends StatelessWidget {
               label,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: color.withOpacity(0.9),
+                color: color.withValues(alpha: 0.9),
                 fontWeight: FontWeight.bold,
                 fontSize: 11,
                 height: 1.2,
@@ -278,15 +278,15 @@ class _OptionCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: GlassCard(
-        color: color.withOpacity(0.05),
-        border: Border.all(color: color.withOpacity(0.2)),
+        color: color.withValues(alpha: 0.05),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
         padding: const EdgeInsets.all(24.0),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
+                color: color.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, size: 32, color: color),
@@ -338,7 +338,7 @@ class StyleToneLogo extends StatelessWidget {
         borderRadius: BorderRadius.circular(size * 0.22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),

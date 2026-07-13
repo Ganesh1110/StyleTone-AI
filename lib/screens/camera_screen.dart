@@ -216,7 +216,7 @@ class _CameraScreenState extends State<CameraScreen> {
                   child: ClipPath(
                     clipper: FaceOverlayClipper(),
                     child: Container(
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withValues(alpha: 0.5),
                     ),
                   ),
                 ),
@@ -228,7 +228,7 @@ class _CameraScreenState extends State<CameraScreen> {
                     decoration: BoxDecoration(
                       borderRadius: const BorderRadius.all(Radius.elliptical(200, 250)),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         width: 2.5,
                       ),
                     ),
@@ -238,18 +238,18 @@ class _CameraScreenState extends State<CameraScreen> {
                         Icon(
                           Icons.face,
                           size: 48,
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                         const SizedBox(height: 12),
                         Text(
                           'Position your face here',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             shadows: [
                               Shadow(
-                                color: Colors.black.withOpacity(0.5),
+                                color: Colors.black.withValues(alpha: 0.5),
                                 offset: const Offset(0, 1),
                                 blurRadius: 2,
                               ),
@@ -283,7 +283,7 @@ class _CameraScreenState extends State<CameraScreen> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(

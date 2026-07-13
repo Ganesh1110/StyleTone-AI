@@ -43,6 +43,7 @@ class ApiService {
         'image': 'data:image/jpeg;base64,$base64Image',
         'occasion': occasion,
         'gender': profile.gender,
+        'face_already_cropped': true,
       };
 
       // 5. Send POST request

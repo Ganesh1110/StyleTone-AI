@@ -191,8 +191,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 8),
                   GlassCard(
                         color: theme.brightness == Brightness.dark
-                            ? Colors.white.withOpacity(0.05)
-                            : Colors.black.withOpacity(0.03),
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.black.withValues(alpha: 0.03),
                         padding: const EdgeInsets.symmetric(
                           vertical: 12.0,
                           horizontal: 16.0,
@@ -227,8 +227,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 8),
                   GlassCard(
                         color: theme.brightness == Brightness.dark
-                            ? Colors.white.withOpacity(0.05)
-                            : Colors.black.withOpacity(0.03),
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.black.withValues(alpha: 0.03),
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
                           children: [
@@ -238,7 +238,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               max: 90.0,
                               divisions: 80,
                               activeColor: cs.primary,
-                              inactiveColor: textSecondary.withOpacity(0.3),
+                              inactiveColor: textSecondary.withValues(alpha: 0.3),
                               onChanged: (val) {
                                 setState(() {
                                   _age = val.toInt();
@@ -276,8 +276,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 8),
                   GlassCard(
                         color: theme.brightness == Brightness.dark
-                            ? Colors.white.withOpacity(0.05)
-                            : Colors.black.withOpacity(0.03),
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.black.withValues(alpha: 0.03),
                         padding: const EdgeInsets.all(16.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -302,8 +302,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 8),
                   GlassCard(
                         color: theme.brightness == Brightness.dark
-                            ? Colors.white.withOpacity(0.05)
-                            : Colors.black.withOpacity(0.03),
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.black.withValues(alpha: 0.03),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16.0,
                           vertical: 12.0,
@@ -352,10 +352,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                   ),
                                               decoration: BoxDecoration(
                                                 color: _muteVoiceOutput
-                                                    ? Colors.red.withOpacity(
+                                                    ? Colors.red.withValues(alpha: 
                                                         0.15,
                                                       )
-                                                    : Colors.green.withOpacity(
+                                                    : Colors.green.withValues(alpha: 
                                                         0.15,
                                                       ),
                                                 borderRadius:
@@ -399,7 +399,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Switch(
                               value: !_muteVoiceOutput,
                               activeColor: cs.primary,
-                              activeTrackColor: cs.primary.withOpacity(0.5),
+                              activeTrackColor: cs.primary.withValues(alpha: 0.5),
                               onChanged: (val) {
                                 setState(() {
                                   _muteVoiceOutput = !val;
@@ -464,8 +464,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return GlassCard(
       color: isDark
-          ? Colors.white.withOpacity(0.05)
-          : Colors.black.withOpacity(0.03),
+          ? Colors.white.withValues(alpha: 0.05)
+          : Colors.black.withValues(alpha: 0.03),
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -547,13 +547,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           color: t.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? cs.primary : Colors.white.withOpacity(0.15),
+            color: isSelected ? cs.primary : Colors.white.withValues(alpha: 0.15),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: t.primary.withOpacity(0.3),
+                    color: t.primary.withValues(alpha: 0.3),
                     blurRadius: 10,
                     spreadRadius: 0,
                   ),
@@ -661,7 +661,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         width: 90,
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
+          color: Colors.white.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: borderColor, width: isSelected ? 2 : 1),
         ),
@@ -750,7 +750,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: color.withOpacity(0.6),
+                            color: color.withValues(alpha: 0.6),
                             blurRadius: 8,
                             spreadRadius: 1,
                           ),

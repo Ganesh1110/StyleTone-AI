@@ -280,7 +280,7 @@ class _VirtualTryOnScreenState extends State<VirtualTryOnScreen>
                               child: CustomPaint(
                                 painter: GarmentOverlayPainter(
                                   garmentType: _selectedGarment,
-                                  color: color.withOpacity(_opacity),
+                                  color: color.withValues(alpha: _opacity),
                                   imageSize: _imageSize,
                                 ),
                               ),
@@ -300,7 +300,7 @@ class _VirtualTryOnScreenState extends State<VirtualTryOnScreen>
           top: 16,
           left: 16,
           child: GlassCard(
-            color: Colors.black.withOpacity(0.6),
+            color: Colors.black.withValues(alpha: 0.6),
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: Text(
               'Season: ${widget.recommendation.detectedCategory}',
@@ -313,7 +313,7 @@ class _VirtualTryOnScreenState extends State<VirtualTryOnScreen>
           top: 16,
           right: 16,
           child: GlassCard(
-            color: Colors.black.withOpacity(0.6),
+            color: Colors.black.withValues(alpha: 0.6),
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -350,7 +350,7 @@ class _VirtualTryOnScreenState extends State<VirtualTryOnScreen>
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.65),
+                    color: Colors.black.withValues(alpha: 0.65),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: Colors.white10),
                   ),
@@ -376,7 +376,7 @@ class _VirtualTryOnScreenState extends State<VirtualTryOnScreen>
                 icon: Icon(Icons.refresh, size: 16, color: Colors.white),
                 label: Text('Reset', style: TextStyle(color: Colors.white, fontSize: 12)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple.withOpacity(0.85),
+                  backgroundColor: Colors.deepPurple.withValues(alpha: 0.85),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
@@ -403,7 +403,7 @@ class _VirtualTryOnScreenState extends State<VirtualTryOnScreen>
           gradient: LinearGradient(
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
-            colors: [Colors.black.withOpacity(0.85), Colors.transparent],
+            colors: [Colors.black.withValues(alpha: 0.85), Colors.transparent],
           ),
         ),
         child: items.isEmpty
@@ -598,7 +598,7 @@ class _VirtualTryOnScreenState extends State<VirtualTryOnScreen>
                       padding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                       margin: EdgeInsets.symmetric(horizontal: 4),
                       decoration: BoxDecoration(
-                        color: isSelected ? roleColor.withOpacity(0.3) : Colors.transparent,
+                        color: isSelected ? roleColor.withValues(alpha: 0.3) : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isSelected ? roleColor : Colors.white24,
@@ -746,7 +746,7 @@ class GarmentOverlayPainter extends CustomPainter {
 
     // Neckline
     final neckPaint = Paint()
-      ..color = Colors.white.withOpacity(0.15)
+      ..color = Colors.white.withValues(alpha: 0.15)
       ..style = PaintingStyle.fill;
     final neckPath = Path();
     neckPath.moveTo(cx - shoulderW * 0.3, shoulderY);
@@ -843,7 +843,7 @@ class GarmentOverlayPainter extends CustomPainter {
 
     // Center crease line
     final creasePaint = Paint()
-      ..color = Colors.white.withOpacity(0.1)
+      ..color = Colors.white.withValues(alpha: 0.1)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     canvas.drawLine(Offset(cx, waistY), Offset(cx, hemY), creasePaint);

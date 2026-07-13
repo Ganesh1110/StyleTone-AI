@@ -116,7 +116,7 @@ class _TripModeScreenState extends State<TripModeScreen> {
         return Padding(
           padding: EdgeInsets.only(bottom: 12),
           child: GlassCard(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             padding: EdgeInsets.all(16),
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
@@ -134,7 +134,7 @@ class _TripModeScreenState extends State<TripModeScreen> {
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      color: Colors.deepPurple.withOpacity(0.15),
+                      color: Colors.deepPurple.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Icon(

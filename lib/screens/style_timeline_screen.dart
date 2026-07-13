@@ -287,9 +287,9 @@ class _StyleTimelineScreenState extends State<StyleTimelineScreen> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.15),
+                    color: iconColor.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
-                    border: Border.all(color: iconColor.withOpacity(0.3)),
+                    border: Border.all(color: iconColor.withValues(alpha: 0.3)),
                   ),
                   child: Icon(icon, color: iconColor, size: 18),
                 ),
@@ -305,7 +305,7 @@ class _StyleTimelineScreenState extends State<StyleTimelineScreen> {
             // Content card
             Expanded(
               child: GlassCard(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
                 margin: EdgeInsets.only(bottom: 8),
                 padding: EdgeInsets.all(12),
                 child: Row(
@@ -393,7 +393,7 @@ class _StyleTimelineScreenState extends State<StyleTimelineScreen> {
         children: [
           // Hero section
           GlassCard(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             padding: EdgeInsets.all(24),
             child: Column(
               children: [
@@ -438,7 +438,7 @@ class _StyleTimelineScreenState extends State<StyleTimelineScreen> {
 
           // Dominant season
           GlassCard(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             padding: EdgeInsets.all(20),
             child: Row(
               children: [
@@ -446,7 +446,7 @@ class _StyleTimelineScreenState extends State<StyleTimelineScreen> {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: Colors.deepPurple.withOpacity(0.15),
+                    color: Colors.deepPurple.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Icon(Icons.palette_rounded, color: Colors.deepPurple, size: 28),
@@ -476,7 +476,7 @@ class _StyleTimelineScreenState extends State<StyleTimelineScreen> {
 
           // Most worn colour
           GlassCard(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             padding: EdgeInsets.all(20),
             child: Row(
               children: [
@@ -543,7 +543,7 @@ class _StyleTimelineScreenState extends State<StyleTimelineScreen> {
 
   Widget _statCard(String label, String value, IconData icon, Color color) {
     return GlassCard(
-      color: Colors.white.withOpacity(0.05),
+      color: Colors.white.withValues(alpha: 0.05),
       padding: EdgeInsets.all(16),
       child: Column(
         children: [

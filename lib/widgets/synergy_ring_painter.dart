@@ -16,7 +16,7 @@ class SynergyRingPainter extends CustomPainter {
       center,
       radius,
       Paint()
-        ..color = Colors.white.withOpacity(0.07)
+        ..color = Colors.white.withValues(alpha: 0.07)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 13,
     );
@@ -29,7 +29,7 @@ class SynergyRingPainter extends CustomPainter {
       2 * pi * value,
       false,
       Paint()
-        ..color = color.withOpacity(0.22)
+        ..color = color.withValues(alpha: 0.22)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 24
         ..strokeCap = StrokeCap.round

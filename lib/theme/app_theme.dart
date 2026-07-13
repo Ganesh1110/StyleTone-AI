@@ -131,33 +131,33 @@ class AppTheme {
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return config.primary.withOpacity(0.5);
+            return config.primary.withValues(alpha: 0.5);
           }
-          return config.textSecondary.withOpacity(0.3);
+          return config.textSecondary.withValues(alpha: 0.3);
         }),
       ),
       chipTheme: ChipThemeData(
         selectedColor: config.primary,
         backgroundColor: isDark
-            ? Colors.white.withOpacity(0.1)
-            : Colors.black.withOpacity(0.05),
+            ? Colors.white.withValues(alpha: 0.1)
+            : Colors.black.withValues(alpha: 0.05),
         side: BorderSide.none,
         labelStyle: TextStyle(color: config.textPrimary),
       ),
       sliderTheme: SliderThemeData(
         activeTrackColor: config.primary,
-        inactiveTrackColor: config.textSecondary.withOpacity(0.3),
+        inactiveTrackColor: config.textSecondary.withValues(alpha: 0.3),
         thumbColor: config.primary,
-        overlayColor: config.primary.withOpacity(0.12),
+        overlayColor: config.primary.withValues(alpha: 0.12),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: config.surface,
         selectedItemColor: config.primary,
-        unselectedItemColor: config.textSecondary.withOpacity(0.6),
+        unselectedItemColor: config.textSecondary.withValues(alpha: 0.6),
         type: BottomNavigationBarType.fixed,
         elevation: 0,
       ),
-      dividerColor: config.textSecondary.withOpacity(0.15),
+      dividerColor: config.textSecondary.withValues(alpha: 0.15),
     );
   }
 

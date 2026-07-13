@@ -118,7 +118,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: page.gradient[0].withOpacity(0.3),
+                            color: page.gradient[0].withValues(alpha: 0.3),
                             blurRadius: 30,
                             offset: const Offset(0, 15),
                           ),
@@ -231,7 +231,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                         elevation: 10,
-                        shadowColor: ThemeConstants.defaultTheme.secondary.withOpacity(0.5),
+                        shadowColor: ThemeConstants.defaultTheme.secondary.withValues(alpha: 0.5),
                       ),
                       child: Text(
                         _currentPage == _pages.length - 1

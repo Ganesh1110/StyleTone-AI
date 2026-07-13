@@ -353,7 +353,7 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withValues(alpha: 0.2),
                           blurRadius: 10,
                         )
                       ],
@@ -377,7 +377,7 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
                   right: 20,
                   bottom: 24,
                   child: GlassCard(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                     padding: const EdgeInsets.all(20.0),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -444,7 +444,7 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
                                 border: Border.all(color: Colors.white, width: 2),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
+                                    color: Colors.black.withValues(alpha: 0.1),
                                     blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   )
@@ -474,7 +474,7 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: _getScoreColor(score).withOpacity(0.15),
+                                    color: _getScoreColor(score).withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Text(

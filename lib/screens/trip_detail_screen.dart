@@ -106,7 +106,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     final totalCount = _allClosetItems.length;
 
     return GlassCard(
-      color: Colors.white.withOpacity(0.05),
+      color: Colors.white.withValues(alpha: 0.05),
       margin: EdgeInsets.all(16),
       padding: EdgeInsets.all(16),
       child: Column(
@@ -214,7 +214,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         return Padding(
           padding: EdgeInsets.only(bottom: 12),
           child: GlassCard(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             padding: EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,7 +251,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                               color: isPacked ? Colors.green : Colors.white12,
                               width: isPacked ? 2 : 1,
                             ),
-                            color: isPacked ? Colors.green.withOpacity(0.1) : null,
+                            color: isPacked ? Colors.green.withValues(alpha: 0.1) : null,
                           ),
                           child: Column(
                             children: [
@@ -264,7 +264,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                                       Image.file(File(item.imagePath), fit: BoxFit.cover, cacheWidth: 200),
                                       if (isPacked)
                                         Container(
-                                          color: Colors.green.withOpacity(0.2),
+                                          color: Colors.green.withValues(alpha: 0.2),
                                           child: Icon(Icons.check_circle_rounded, color: Colors.green, size: 28),
                                         ),
                                     ],

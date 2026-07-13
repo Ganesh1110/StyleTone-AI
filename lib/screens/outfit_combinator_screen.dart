@@ -243,7 +243,7 @@ class _OutfitCombinatorScreenState extends State<OutfitCombinatorScreen> with Si
         children: [
           // Season & Fit Summary Card
           GlassCard(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,7 +259,7 @@ class _OutfitCombinatorScreenState extends State<OutfitCombinatorScreen> with Si
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.12),
+                          color: Colors.green.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -330,7 +330,7 @@ class _OutfitCombinatorScreenState extends State<OutfitCombinatorScreen> with Si
     final targetColor = Color(int.parse(targetColorHex.replaceFirst('#', '0xFF')));
 
     return GlassCard(
-      color: Colors.white.withOpacity(0.05),
+      color: Colors.white.withValues(alpha: 0.05),
       padding: const EdgeInsets.all(14.0),
       child: Row(
         children: [
@@ -388,7 +388,7 @@ class _OutfitCombinatorScreenState extends State<OutfitCombinatorScreen> with Si
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: _getScoreColor(score ?? 0).withOpacity(0.12),
+                          color: _getScoreColor(score ?? 0).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(

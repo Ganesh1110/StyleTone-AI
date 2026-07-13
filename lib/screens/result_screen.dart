@@ -9,7 +9,9 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'package:image/image.dart' as img;
 import '../services/api_service.dart';
+import '../services/skin_analyzer.dart';
 import '../services/tts_service.dart';
 import '../services/history_service.dart';
 import '../services/profile_service.dart';
@@ -125,27 +127,21 @@ class _ResultScreenState extends State<ResultScreen>
     });
     _startLoadingTimer();
 
+    // Try offline on-device analysis (no network required)
+    final offlineResult = await _tryOfflineAnalysis();
+    if (offlineResult != null) {
+      _onResult(offlineResult);
+      return;
+    }
+
+    // Fall back to API
     try {
       final apiService = ApiService();
       final data = await apiService.getRecommendations(
         imageFile: widget.imageFile,
         occasion: widget.occasion,
       );
-
-      _loadingTimer?.cancel();
-      final recommendation = ColorRecommendation.fromJson(data);
-
-      setState(() {
-        _recommendation = recommendation;
-        _isLoading = false;
-      });
-
-      // Save to history cache
-      final historyService = HistoryService();
-      _historyId = await historyService.saveItem(widget.imageFile, widget.occasion, recommendation);
-      if (mounted) setState(() {});
-
-      _speakRecommendation(auto: true);
+      _onResult(ColorRecommendation.fromJson(data));
     } catch (e) {
       _loadingTimer?.cancel();
       setState(() {
@@ -153,6 +149,31 @@ class _ResultScreenState extends State<ResultScreen>
         _isLoading = false;
       });
     }
+  }
+
+  Future<ColorRecommendation?> _tryOfflineAnalysis() async {
+    try {
+      final bytes = await widget.imageFile.readAsBytes();
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) return null;
+      final resized = img.copyResize(decoded, width: 400, height: 400);
+      final data = await processSelfie(resized);
+      if (data == null) return null;
+      return ColorRecommendation.fromJson(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _onResult(ColorRecommendation recommendation) {
+    _loadingTimer?.cancel();
+    setState(() {
+      _recommendation = recommendation;
+      _isLoading = false;
+    });
+    HistoryService().saveItem(widget.imageFile, widget.occasion, recommendation)
+        .then((id) { _historyId = id; if (mounted) setState(() {}); });
+    _speakRecommendation(auto: true);
   }
 
   Future<void> _updateRating(int newRating) async {
@@ -229,7 +250,7 @@ class _ResultScreenState extends State<ResultScreen>
                   const SizedBox(height: 16),
                   LinearProgressIndicator(
                     value: progress == 0.0 && _tts.isInitializing ? null : progress,
-                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                     color: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(height: 8),
@@ -565,9 +586,9 @@ class _ResultScreenState extends State<ResultScreen>
           padding: const EdgeInsets.only(bottom: 16),
           child: GlassCard(
             margin: EdgeInsets.zero,
-            color: themeConfig.primary.withOpacity(0.08),
+            color: themeConfig.primary.withValues(alpha: 0.08),
             padding: const EdgeInsets.all(14),
-            border: Border.all(color: themeConfig.primary.withOpacity(0.3)),
+            border: Border.all(color: themeConfig.primary.withValues(alpha: 0.3)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -632,7 +653,7 @@ class _ResultScreenState extends State<ResultScreen>
                       }
                     },
                     style: TextButton.styleFrom(
-                      backgroundColor: themeConfig.primary.withOpacity(0.15),
+                      backgroundColor: themeConfig.primary.withValues(alpha: 0.15),
                       foregroundColor: themeConfig.primary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -660,9 +681,9 @@ class _ResultScreenState extends State<ResultScreen>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+            border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
           ),
           child: Text(
             'Detected: ${rec.detectedCategory}',
@@ -676,9 +697,9 @@ class _ResultScreenState extends State<ResultScreen>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.08),
+            color: Colors.green.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green.withOpacity(0.15)),
+            border: Border.all(color: Colors.green.withValues(alpha: 0.15)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -690,7 +711,7 @@ class _ResultScreenState extends State<ResultScreen>
                   value: rec.confidence / 100.0,
                   strokeWidth: 2.5,
                   color: Colors.green,
-                  backgroundColor: Colors.green.withOpacity(0.15),
+                  backgroundColor: Colors.green.withValues(alpha: 0.15),
                 ),
               ),
               const SizedBox(width: 6),
@@ -719,7 +740,7 @@ class _ResultScreenState extends State<ResultScreen>
           // Styling Tips Card
           GlassCard(
             margin: EdgeInsets.zero,
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             padding: const EdgeInsets.all(16.0),
             child: Text(
               palette.message,
@@ -756,7 +777,7 @@ class _ResultScreenState extends State<ResultScreen>
             key: _getShareKey(occasionKey),
             child: GlassCard(
               margin: EdgeInsets.zero,
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -862,7 +883,7 @@ class _ResultScreenState extends State<ResultScreen>
               border: Border.all(color: Colors.grey.shade300, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 6,
                   offset: const Offset(0, 3),
                 )

@@ -95,7 +95,7 @@ class _ReadyToWearBlueprintSheetState
                     border: Border.all(color: Colors.white24, width: 2),
                     boxShadow: [
                       BoxShadow(
-                        color: focusColor.withOpacity(0.45),
+                        color: focusColor.withValues(alpha: 0.45),
                         blurRadius: 18,
                         spreadRadius: 4,
                       ),
@@ -140,7 +140,7 @@ class _ReadyToWearBlueprintSheetState
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.06),
+                color: Colors.white.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: TabBar(
@@ -151,7 +151,7 @@ class _ReadyToWearBlueprintSheetState
                   gradient: LinearGradient(
                     colors: [
                       Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(10),
@@ -246,13 +246,13 @@ class _ReadyToWearBlueprintSheetState
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: slot.isKeyPiece
-            ? Theme.of(context).colorScheme.primary.withOpacity(0.18)
-            : Colors.white.withOpacity(0.04),
+            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.18)
+            : Colors.white.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: slot.isKeyPiece
-              ? Theme.of(context).colorScheme.primary.withOpacity(0.45)
-              : Colors.white.withOpacity(0.07),
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.45)
+              : Colors.white.withValues(alpha: 0.07),
         ),
       ),
       child: Row(
@@ -264,11 +264,11 @@ class _ReadyToWearBlueprintSheetState
               color: c,
               borderRadius: BorderRadius.circular(13),
               border: Border.all(
-                  color: Colors.white.withOpacity(0.18), width: 1.5),
+                  color: Colors.white.withValues(alpha: 0.18), width: 1.5),
               boxShadow: slot.isKeyPiece
                   ? [
                       BoxShadow(
-                          color: c.withOpacity(0.55),
+                          color: c.withValues(alpha: 0.55),
                           blurRadius: 14,
                           spreadRadius: 2)
                     ]
@@ -321,7 +321,7 @@ class _ReadyToWearBlueprintSheetState
                 gradient: LinearGradient(
                   colors: [
                     Theme.of(context).colorScheme.primary,
-                    Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(8),

@@ -353,7 +353,11 @@ def _adjust_for_skin_tone(hex_color: str, l_val: float) -> str:
     return rgb_to_hex((r * 255, g * 255, b * 255))
 
 
-def process_selfie(base64_image: str, gender: str = "neutral") -> dict:
+def process_selfie(
+    base64_image: str,
+    gender: str = "neutral",
+    face_already_cropped: bool = False,
+) -> dict:
     try:
         if base64_image.startswith("data:image"):
             base64_image = base64_image.split(",")[1]
@@ -364,15 +368,16 @@ def process_selfie(base64_image: str, gender: str = "neutral") -> dict:
         if img is None:
             raise ValueError("Failed to decode image")
 
-        # --- FACE DETECTION ---
-        face_region = _detect_face(img)
-        if face_region is None:
-            raise ValueError(
-                "No face detected in the image. "
-                "Please ensure your face is clearly visible and well-lit."
-            )
-        logger.info("Face detected, region shape: %s", face_region.shape)
-        img = face_region
+        # --- FACE DETECTION (skipped if client already cropped) ---
+        if not face_already_cropped:
+            face_region = _detect_face(img)
+            if face_region is None:
+                raise ValueError(
+                    "No face detected in the image. "
+                    "Please ensure your face is clearly visible and well-lit."
+                )
+            logger.info("Face detected, region shape: %s", face_region.shape)
+            img = face_region
 
         # --- SKIN SEGMENTATION ---
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)

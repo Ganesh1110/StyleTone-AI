@@ -340,7 +340,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                                                 end: Alignment.bottomCenter,
                                                 colors: [
                                                   _drapeColor,
-                                                  _drapeColor.withOpacity(0.85),
+                                                  _drapeColor.withValues(alpha: 0.85),
                                                 ],
                                               ),
                                             ),
@@ -391,7 +391,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                                                           ),
                                                       decoration: BoxDecoration(
                                                         color: Colors.black
-                                                            .withOpacity(0.5),
+                                                            .withValues(alpha: 0.5),
                                                         borderRadius:
                                                             BorderRadius.circular(
                                                               6,
@@ -473,13 +473,13 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: Colors.amber.shade900
-                                              .withOpacity(0.9),
+                                              .withValues(alpha: 0.9),
                                           borderRadius: BorderRadius.circular(
                                             10,
                                           ),
                                           border: Border.all(
                                             color: Colors.amberAccent
-                                                .withOpacity(0.4),
+                                                .withValues(alpha: 0.4),
                                           ),
                                         ),
                                         child: const Row(
@@ -515,7 +515,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                                         decoration: ShapeDecoration(
                                           color: const Color(
                                             0xFF130D2E,
-                                          ).withOpacity(0.85),
+                                          ).withValues(alpha: 0.85),
                                           shape: const CircleBorder(
                                             side: BorderSide(
                                               color: Colors.white24,
@@ -602,9 +602,9 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
+        color: Colors.white.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -650,7 +650,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
           height: 56,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             border: Border.all(
               color: isActive ? Colors.white : Colors.white60,
               width: isActive ? 2.5 : 1.5,
@@ -662,7 +662,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
               height: 44,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.black.withOpacity(
+                color: Colors.black.withValues(alpha: 
                   0.1,
                 ), // Semi-transparent overlay to keep the plus readable
                 border: Border.all(color: Colors.white, width: 1.5),
@@ -709,7 +709,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.85),
+                color: Colors.black.withValues(alpha: 0.85),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: Colors.white24, width: 0.8),
                 boxShadow: const [
@@ -767,7 +767,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
   Widget _buildColorBar() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      color: const Color(0xFF130D2E).withOpacity(0.4),
+      color: const Color(0xFF130D2E).withValues(alpha: 0.4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -806,7 +806,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? Colors.white.withOpacity(0.08) : Colors.transparent,
+          color: active ? Colors.white.withValues(alpha: 0.08) : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: active ? Colors.deepPurple.shade300 : Colors.transparent,
@@ -864,7 +864,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF130D2E),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: SafeArea(
         top: false,
@@ -914,7 +914,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                                 const SizedBox(width: 6),
                                 Icon(
                                   Icons.edit_note_rounded,
-                                  color: sColor.withOpacity(0.8),
+                                  color: sColor.withValues(alpha: 0.8),
                                   size: 20,
                                 ),
                               ],
@@ -1054,7 +1054,7 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
                               border: Border.all(
                                 color: _drapeColor == color && _showDrapes
                                     ? Colors.greenAccent
-                                    : const Color(0xFFFF5252).withOpacity(0.6),
+                                    : const Color(0xFFFF5252).withValues(alpha: 0.6),
                                 width: _drapeColor == color && _showDrapes
                                     ? 2.0
                                     : 1.5,
@@ -1239,7 +1239,7 @@ class _TooltipArrowPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.black.withOpacity(0.85)
+      ..color = Colors.black.withValues(alpha: 0.85)
       ..style = PaintingStyle.fill;
     final path = Path()
       ..moveTo(0, 0)
