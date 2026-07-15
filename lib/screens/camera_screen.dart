@@ -25,11 +25,11 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   late CameraController _controller;
-  late Future<void> _initializeControllerFuture;
+  bool _isCameraInitialized = false;
 
   late String _selectedOccasion;
   bool _isProcessing = false;
-  bool _isUsingFrontCamera = false;
+  bool _isUsingFrontCamera = true;
 
   final FaceDetector _faceDetector = FaceDetector(
     options: FaceDetectorOptions(
@@ -52,9 +52,21 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
-  void _initCamera() {
-    _controller = CameraController(_getCamera(), ResolutionPreset.medium);
-    _initializeControllerFuture = _controller.initialize();
+  Future<void> _initCamera() async {
+    try {
+      final camera = _getCamera();
+      _controller = CameraController(camera, ResolutionPreset.medium);
+      await _controller.initialize();
+      if (mounted) {
+        setState(() => _isCameraInitialized = true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Camera error: $e')));
+      }
+    }
   }
 
   @override
@@ -71,12 +83,13 @@ class _CameraScreenState extends State<CameraScreen> {
     super.dispose();
   }
 
-  void _switchCamera() {
+  Future<void> _switchCamera() async {
     setState(() {
       _isUsingFrontCamera = !_isUsingFrontCamera;
-      _controller.dispose();
-      _initCamera();
+      _isCameraInitialized = false;
     });
+    await _controller.dispose();
+    await _initCamera();
   }
 
   Future<void> _takePictureAndProcess() async {
@@ -199,18 +212,12 @@ class _CameraScreenState extends State<CameraScreen> {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                FutureBuilder<void>(
-                  future: _initializeControllerFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.done) {
-                      return CameraPreview(_controller);
-                    } else {
-                      return const Center(
-                        child: CircularProgressIndicator(color: Colors.white),
-                      );
-                    }
-                  },
-                ),
+                if (_isCameraInitialized)
+                  CameraPreview(_controller)
+                else
+                  const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  ),
                 // Face guide overlay (semitransparent dim outer, transparent oval center)
                 Positioned.fill(
                   child: ClipPath(
