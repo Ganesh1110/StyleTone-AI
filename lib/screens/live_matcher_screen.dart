@@ -29,7 +29,9 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
   // Matchmaking State
   HistoryItem? _latestScan;
   String _selectedSeason = 'Autumn'; // Fallback if no scans exist
+  String _selectedOccasion = 'casual';
   final List<String> _seasonsList = ['Spring', 'Summer', 'Autumn', 'Winter'];
+  final List<String> _occasionList = ['office', 'party', 'casual'];
 
   // Static color ranges for fast local naming
   final Map<String, List<int>> _colorLibrary = {
@@ -62,11 +64,20 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
   };
 
   // Mock season colors to fallback on if no selfie scans are stored in SQLite
+  // Keyed by "Season|occasion" for occasion-aware fallback
   final Map<String, List<String>> _fallbackSeasonColors = {
-    'Spring': ['#FFD700', '#FFA07A', '#98FB98'], // Gold, Peach, Mint
-    'Summer': ['#87CEEB', '#E6E6FA', '#FFB6C1'], // Sky blue, Lavender, Pink
-    'Autumn': ['#D2691E', '#E4B22F', '#808000'], // Chocolate, Mustard, Olive
-    'Winter': ['#4169E1', '#800080', '#0F0F0F'], // Royal blue, Deep purple, Black
+    'Spring|office': ['#C28E75', '#D6C5A8', '#477876'],
+    'Spring|party': ['#FF7F50', '#FFD700', '#008080'],
+    'Spring|casual': ['#E9967A', '#F5F5DC', '#20B2AA'],
+    'Summer|office': ['#B08B9E', '#708090', '#6A7B83'],
+    'Summer|party': ['#DA8A9F', '#9370DB', '#4682B4'],
+    'Summer|casual': ['#FFB6C1', '#E6E6FA', '#778899'],
+    'Autumn|office': ['#8A5E38', '#556B2F', '#C2A67D'],
+    'Autumn|party': ['#E05A47', '#B8860B', '#2E8B57'],
+    'Autumn|casual': ['#D2691E', '#8FBC8F', '#F5F5DC'],
+    'Winter|office': ['#1F3A60', '#0E5033', '#4A4A4A'],
+    'Winter|party': ['#4169E1', '#00A86B', '#C71585'],
+    'Winter|casual': ['#4682B4', '#2E8B57', '#E0115F'],
   };
 
   @override
@@ -285,13 +296,14 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
     List<String> activePaletteColors = [];
 
     if (_latestScan != null) {
-      // Use actual user recommended colors
+      // Use actual user recommended colors for the selected occasion
       final palettes = _latestScan!.recommendation.palettes;
-      final casual = palettes['casual'] ?? palettes['office']!;
-      activePaletteColors = [casual.primaryColor, casual.secondaryColor, casual.accentColor];
+      final occasionPalette = palettes[_selectedOccasion] ?? palettes['casual'] ?? palettes['office']!;
+      activePaletteColors = [occasionPalette.primaryColor, occasionPalette.secondaryColor, occasionPalette.accentColor];
     } else {
-      // Use seasonal fallback colors
-      activePaletteColors = _fallbackSeasonColors[_selectedSeason] ?? ['#FFFFFF', '#888888', '#000000'];
+      // Use occasion-aware seasonal fallback colors
+      final key = '$_selectedSeason|$_selectedOccasion';
+      activePaletteColors = _fallbackSeasonColors[key] ?? ['#FFFFFF', '#888888', '#000000'];
     }
 
     // Calculate match percentage against the closest palette color
@@ -430,6 +442,43 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
                           ),
                           const Divider(height: 20, color: Colors.white24),
                         ],
+
+                        // Occasion toggle chips
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: _occasionList.map((occ) {
+                            final selected = _selectedOccasion == occ;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: GestureDetector(
+                                onTap: () => setState(() => _selectedOccasion = occ),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: selected
+                                        ? Colors.white.withValues(alpha: 0.15)
+                                        : Colors.white.withValues(alpha: 0.04),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: selected
+                                          ? Colors.white.withValues(alpha: 0.4)
+                                          : Colors.white.withValues(alpha: 0.1),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    occ.toUpperCase(),
+                                    style: TextStyle(
+                                      color: selected ? Colors.white : Colors.white54,
+                                      fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 8),
 
                         // Live and Match Indicators
                         Row(

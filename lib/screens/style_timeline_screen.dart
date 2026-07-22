@@ -128,6 +128,45 @@ class _StyleTimelineScreenState extends State<StyleTimelineScreen> {
 
     final challengeCount = events.where((e) => e.type == TimelineEventType.challengeCompleted).length;
 
+    // --- Undertone drift: lightness trend ---
+    final sortedHistory = List<HistoryItem>.from(history)
+      ..sort((a, b) => a.date.compareTo(b.date));
+    final lightnessTrend = <double>[];
+    final lightnessDates = <String>[];
+    final dateFormat = DateFormat('MMM d');
+    for (final h in sortedHistory) {
+      final l = h.recommendation.skinLightness;
+      if (l != null) {
+        lightnessTrend.add(l);
+        lightnessDates.add(dateFormat.format(h.date));
+      }
+    }
+
+    // --- Wardrobe colour-balance dashboard ---
+    double onPalettePercent = 0;
+    if (closet.isNotEmpty && sortedHistory.isNotEmpty) {
+      final latestPalette = sortedHistory.last.recommendation.palettes['casual'];
+      if (latestPalette != null) {
+        final paletteHexes = [
+          latestPalette.primaryColor,
+          latestPalette.secondaryColor,
+          latestPalette.accentColor,
+        ];
+        int onPalette = 0;
+        for (final item in closet) {
+          final itemHex = item.hexColor.toUpperCase();
+          for (final ph in paletteHexes) {
+            final d = _rgbDistance(itemHex, ph.toUpperCase());
+            if (d < 120) {
+              onPalette++;
+              break;
+            }
+          }
+        }
+        onPalettePercent = (onPalette / closet.length * 100).roundToDouble();
+      }
+    }
+
     return StyleAnalytics(
       totalScans: history.length,
       totalClosetItems: closet.length,
@@ -136,7 +175,24 @@ class _StyleTimelineScreenState extends State<StyleTimelineScreen> {
       mostWornColorName: mostWornColor,
       dominantSeason: dominantSeason,
       streakDays: streak,
+      lightnessTrend: lightnessTrend,
+      lightnessTrendDates: lightnessDates,
+      onPalettePercent: onPalettePercent,
     );
+  }
+
+  double _rgbDistance(String hex1, String hex2) {
+    try {
+      final r1 = int.parse(hex1.substring(1, 3), radix: 16);
+      final g1 = int.parse(hex1.substring(3, 5), radix: 16);
+      final b1 = int.parse(hex1.substring(5, 7), radix: 16);
+      final r2 = int.parse(hex2.substring(1, 3), radix: 16);
+      final g2 = int.parse(hex2.substring(3, 5), radix: 16);
+      final b2 = int.parse(hex2.substring(5, 7), radix: 16);
+      return ((r1 - r2) * (r1 - r2) + (g1 - g2) * (g1 - g2) + (b1 - b2) * (b1 - b2)).toDouble();
+    } catch (_) {
+      return double.infinity;
+    }
   }
 
   @override
@@ -514,7 +570,122 @@ class _StyleTimelineScreenState extends State<StyleTimelineScreen> {
               ],
             ),
           ),
-          SizedBox(height: 32),
+          SizedBox(height: 12),
+
+          // Undertone drift: lightness trend
+          if (_analytics.lightnessTrend.length >= 2) ...[
+            GlassCard(
+              color: Colors.white.withValues(alpha: 0.05),
+              padding: EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.trending_up, color: Colors.lightBlue, size: 20),
+                      SizedBox(width: 8),
+                      Text('Skin Lightness Trend',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  SizedBox(
+                    height: 60,
+                    child: CustomPaint(
+                      size: Size.infinite,
+                      painter: _LightnessTrendPainter(
+                        values: _analytics.lightnessTrend,
+                        color: Colors.lightBlue,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(_analytics.lightnessTrendDates.first,
+                          style: TextStyle(color: Colors.white38, fontSize: 10)),
+                      Text(_analytics.lightnessTrendDates.last,
+                          style: TextStyle(color: Colors.white38, fontSize: 10)),
+                    ],
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    _buildDriftInsight(_analytics.lightnessTrend),
+                    style: TextStyle(color: Colors.white60, fontSize: 12, height: 1.3),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 12),
+          ],
+
+          // Wardrobe colour-balance dashboard
+          if (_analytics.totalClosetItems > 0) ...[
+            GlassCard(
+              color: Colors.white.withValues(alpha: 0.05),
+              padding: EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.pie_chart_rounded, color: Colors.teal, size: 20),
+                      SizedBox(width: 8),
+                      Text('Wardrobe Palette Balance',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Text('${_analytics.onPalettePercent.round()}%',
+                                style: TextStyle(
+                                  color: _analytics.onPalettePercent >= 60 ? Colors.greenAccent : Colors.orangeAccent,
+                                  fontWeight: FontWeight.bold, fontSize: 28,
+                                )),
+                            Text('On-Palette', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                      Container(width: 1, height: 40, color: Colors.white12),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Text('${(100 - _analytics.onPalettePercent).round()}%',
+                                style: TextStyle(
+                                  color: _analytics.onPalettePercent >= 60 ? Colors.orangeAccent : Colors.greenAccent,
+                                  fontWeight: FontWeight.bold, fontSize: 28,
+                                )),
+                            Text('Off-Palette', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  LinearProgressIndicator(
+                    value: _analytics.onPalettePercent / 100,
+                    backgroundColor: Colors.white.withValues(alpha: 0.1),
+                    color: Colors.teal,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    _analytics.onPalettePercent >= 60
+                        ? 'Most of your wardrobe aligns with your season palette.'
+                        : 'Consider adding more palette-aligned pieces for better cohesion.',
+                    style: TextStyle(color: Colors.white60, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 12),
+          ],
+
+          SizedBox(height: 20),
 
           // Share button
           SizedBox(
@@ -539,6 +710,19 @@ class _StyleTimelineScreenState extends State<StyleTimelineScreen> {
         ],
       ),
     );
+  }
+
+  String _buildDriftInsight(List<double> values) {
+    if (values.length < 2) return '';
+    final first = values.first;
+    final last = values.last;
+    final diff = last - first;
+    final dir = diff.abs() / values.length;
+    if (dir < 1.5) return 'Your skin lightness has been stable over time.';
+    if (diff > 0) {
+      return 'Your skin is trending lighter (${diff.toStringAsFixed(1)} pts) — you may be shifting toward a cooler/brighter season.';
+    }
+    return 'Your skin is trending deeper (${diff.abs().toStringAsFixed(1)} pts) — you may be shifting toward a warmer/deeper season.';
   }
 
   Widget _statCard(String label, String value, IconData icon, Color color) {
@@ -587,4 +771,69 @@ class TimelineEntry {
     this.colors,
     this.color,
   });
+}
+
+class _LightnessTrendPainter extends CustomPainter {
+  final List<double> values;
+  final Color color;
+
+  _LightnessTrendPainter({required this.values, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.length < 2) return;
+
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.6)
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0.0)],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    final min = values.reduce((a, b) => a < b ? a : b);
+    final max = values.reduce((a, b) => a > b ? a : b);
+    final range = (max - min).clamp(1.0, double.infinity);
+
+    final path = Path();
+    final fillPath = Path();
+    final stepX = size.width / (values.length - 1);
+
+    for (int i = 0; i < values.length; i++) {
+      final x = i * stepX;
+      final y = size.height - ((values[i] - min) / range) * size.height * 0.8 - size.height * 0.1;
+      if (i == 0) {
+        path.moveTo(x, y);
+        fillPath.moveTo(x, size.height);
+        fillPath.lineTo(x, y);
+      } else {
+        path.lineTo(x, y);
+        fillPath.lineTo(x, y);
+      }
+    }
+    fillPath.lineTo(size.width, size.height);
+    fillPath.close();
+
+    canvas.drawPath(fillPath, fillPaint);
+    canvas.drawPath(path, paint);
+
+    // Draw dots at each data point
+    final dotPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    for (int i = 0; i < values.length; i++) {
+      final x = i * stepX;
+      final y = size.height - ((values[i] - min) / range) * size.height * 0.8 - size.height * 0.1;
+      canvas.drawCircle(Offset(x, y), 3.5, dotPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LightnessTrendPainter oldDelegate) =>
+      oldDelegate.values != values;
 }

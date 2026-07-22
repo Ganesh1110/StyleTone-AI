@@ -759,64 +759,86 @@ class _ResultScreenState extends State<ResultScreen>
   }
 
   Widget _buildHeaderSection(ColorRecommendation rec) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 250,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-          decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.primary.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.3),
-            ),
-          ),
-          child: Text(
-            'Detected: ${rec.detectedCategory}',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
-              fontSize: 13,
-            ),
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: Colors.green.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green.withValues(alpha: 0.15)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(
-                  value: rec.confidence / 100.0,
-                  strokeWidth: 2.5,
-                  color: Colors.green,
-                  backgroundColor: Colors.green.withValues(alpha: 0.15),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              width: 250,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                 ),
               ),
-              const SizedBox(width: 6),
-              Text(
-                '${rec.confidence}% Match',
-                style: const TextStyle(
+              child: Text(
+                'Detected: ${rec.detectedCategory}',
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  color: Colors.green,
+                  color: Theme.of(context).colorScheme.primary,
+                  fontSize: 13,
                 ),
               ),
-            ],
-          ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.15)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      value: rec.confidence / 100.0,
+                      strokeWidth: 2.5,
+                      color: Colors.green,
+                      backgroundColor: Colors.green.withValues(alpha: 0.15),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${rec.confidence}% Match',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Colors.green,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
+        if (rec.styleArchetype != null) ...[
+          const SizedBox(height: 10),
+          GlassCard(
+            margin: EdgeInsets.zero,
+            color: Colors.amber.withValues(alpha: 0.06),
+            padding: const EdgeInsets.all(10),
+            border: Border.all(color: Colors.amber.withValues(alpha: 0.15)),
+            child: Row(
+              children: [
+                Icon(Icons.auto_awesome, color: Colors.amber, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${rec.styleArchetype} — ${rec.styleArchetypeDescription ?? ''}',
+                    style: const TextStyle(color: Colors.amber, fontSize: 12, height: 1.3),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }

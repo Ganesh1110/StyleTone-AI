@@ -926,6 +926,9 @@ def process_selfie(
         # --- Skin tone labels (12-subseason aware) ---
         detected_label = SKIN_TONE_LABELS_12.get(detected_season, f"{detected_season} Season")
 
+        # --- Style archetype ---
+        archetype_data = STYLE_ARCHETYPES.get(detected_season, ("The Stylist", "Your personal colour story is still being written."))
+
         return {
             "detected_category": detected_label,
             "detected_subseason": detected_season,
@@ -936,6 +939,9 @@ def process_selfie(
             "makeup_palette": makeup_out,
             "hair_color_palette": hair_out,
             "colors_to_avoid": avoid,
+            "style_archetype": archetype_data[0],
+            "style_archetype_description": archetype_data[1],
+            "skin_lightness": round(l_val, 1),
         }
 
     except ValueError as e:
@@ -993,10 +999,31 @@ def get_color_name(r: int, g: int, b: int) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Style Archetypes — shareable labels per 12 subseason
+# ---------------------------------------------------------------------------
+
+STYLE_ARCHETYPES = {
+    "Light Spring": ("The Warm Minimalist", "Delicate warmth with an airy, understated elegance. Think soft luminosity, not loud colour."),
+    "Warm Spring": ("The Golden Hour", "Sun-kissed and approachable. Your palette glows with honeyed warmth and cheerful energy."),
+    "Bright Spring": ("The Vibrant Optimist", "Bold, clear, and saturated. You radiate confidence and a playful zest for life."),
+    "Light Summer": ("The Ethereal Cool", "Graceful, muted, and serene. Your look whispers refinement with a cool, misty palette."),
+    "Cool Summer": ("The Elegant Rose", "True cool composure. Dusty pinks and steel blues create a quietly powerful, polished presence."),
+    "Soft Summer": ("The Smoky Classic", "Muted sophistication with a hint of mystery. Greyed tones give you an understated, timeless edge."),
+    "Soft Autumn": ("The Earthy Minimalist", "Subtle warmth grounded in nature. Olive, clay, and taupe speak a quiet, confident language."),
+    "Warm Autumn": ("The Amber Glow", "Rich, golden, and deeply warm. Terracotta and mustard tell a story of harvest abundance."),
+    "Deep Autumn": ("The Forest Depth", "Dark, opulent, and grounded. Espresso, rust, and pine project strength without shouting."),
+    "Deep Winter": ("The Dark Luxe", "High-contrast depth with icy edge. Midnight and charcoal create a commanding, dramatic silhouette."),
+    "Cool Winter": ("The Ice Queen", "Crystal-clear cool that stops the room. Royal blue and emerald demand attention with precision."),
+    "Bright Winter": ("The Electric Edge", "Brilliant, chromatic, and fearless. Hot pink and electric blue are your superpowers."),
+}
+
+
+# ---------------------------------------------------------------------------
 # Closet Synergy Engine
 # ---------------------------------------------------------------------------
 
-_MAX_DIST = 441.67  # sqrt(255^2 * 3) — max possible RGB Euclidean distance
+# CIEDE2000 range for real-world colours is ~0-100; use 100 as the normaliser.
+_MAX_DE = 100.0
 
 _CATEGORY_LABELS = {
     "top": "Top / Shirt",
@@ -1009,7 +1036,8 @@ _CATEGORY_LABELS = {
 
 def compute_synergy(new_hex: str, season: str, closet_items: list) -> dict:
     """
-    Compute a Closet Synergy Score for a new garment.
+    Compute a Closet Synergy Score for a new garment using CIEDE2000
+    (the same perceptually-uniform metric the season classifier uses).
 
     Args:
         new_hex:      HEX color of the new garment (e.g. '#4a90d9').
@@ -1036,34 +1064,37 @@ def compute_synergy(new_hex: str, season: str, closet_items: list) -> dict:
     for occ in ("office", "party", "casual"):
         all_palette_hexes.update(palette.get(occ, []))
 
-    new_r, new_g, new_b = hex_to_rgb(new_hex)
+    new_lab = _lab_from_hex(new_hex)
 
-    # ── Synergy score: distance to closest palette color ─────────────────────
+    # ── Synergy score: CIEDE2000 distance to closest palette color ──────────
     min_palette_dist = float("inf")
     matched_colors: list[str] = []
 
     for ph in all_palette_hexes:
-        pr, pg, pb = hex_to_rgb(ph)
-        dist = ((new_r - pr) ** 2 + (new_g - pg) ** 2 + (new_b - pb) ** 2) ** 0.5
+        pal_lab = _lab_from_hex(ph)
+        dist = delta_e_2000(new_lab, pal_lab)
         if dist < min_palette_dist:
             min_palette_dist = dist
-        if dist < 120:
+        if dist < 15:
             matched_colors.append(ph)
 
-    synergy_score = max(0, min(100, int((1 - min_palette_dist / _MAX_DIST) * 100)))
+    synergy_score = max(0, min(100, int((1 - min_palette_dist / _MAX_DE) * 100)))
 
-    # ── Outfit combos with existing closet items ─────────────────────────────
+    # ── Outfit combos with existing closet items (CIEDE2000) ─────────────────
     new_combos: list[dict] = []
     for item in closet_items:
         item_hex = item.get("hex_color", "#FFFFFF")
-        ir, ig, ib = hex_to_rgb(item_hex)
-        dist = ((new_r - ir) ** 2 + (new_g - ig) ** 2 + (new_b - ib) ** 2) ** 0.5
+        item_lab = _lab_from_hex(item_hex)
+        dist = delta_e_2000(new_lab, item_lab)
 
-        is_analogous = dist < 100          # harmonious, close hues
-        is_complementary = 180 < dist < 330  # high contrast pairing
+        # In perceptually-uniform Lab space:
+        #   DE < 20  → analogous (close hues, harmonious)
+        #   DE > 45  → complementary (perceptually opposite)
+        is_analogous = dist < 20
+        is_complementary = dist > 45
 
         if (is_analogous or is_complementary):
-            match_score = max(0, min(100, int((1 - dist / _MAX_DIST) * 100)))
+            match_score = max(0, min(100, int((1 - dist / _MAX_DE) * 100)))
             if match_score > 35:
                 new_combos.append({
                     "new_item_hex": new_hex,

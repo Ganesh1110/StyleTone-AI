@@ -54,6 +54,12 @@ class DressUrlRequest(BaseModel):
     closet_items: List[Dict[str, Any]] = []
 
 
+class BatchDressUrlRequest(BaseModel):
+    urls: List[str]
+    season: str = "Spring Season"
+    closet_items: List[Dict[str, Any]] = []
+
+
 class ClothingRequest(BaseModel):
     image: str
 
@@ -185,6 +191,82 @@ async def analyze_dress(request: DressUrlRequest):
     except Exception as e:
         logger.warning("Dress scraping failed for %s: %s", request.url, e)
         return {"error": f"Scraping failed: {str(e)}"}
+
+
+@app.post("/batch-scrape-dress")
+async def batch_analyze_dress(request: BatchDressUrlRequest):
+    """Scrape multiple product URLs and rank them by synergy score."""
+    if not request.urls:
+        raise HTTPException(status_code=400, detail="No URLs provided.")
+
+    headers = {
+        'User-Agent': (
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+            'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        )
+    }
+
+    results: list[dict] = []
+    for url in request.urls:
+        if not _is_safe_url(url):
+            results.append({"url": url, "error": "Invalid or unsafe URL."})
+            continue
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code != 200:
+                results.append({"url": url, "error": "Could not fetch the webpage."})
+                continue
+
+            soup = BeautifulSoup(response.text, 'html.parser')
+            img_tag = (
+                soup.find('img', {'class': re.compile(r'product|main|hero', re.I)})
+                or soup.find('img')
+            )
+            if not (img_tag and img_tag.get('src')):
+                results.append({"url": url, "error": "Could not find a product image."})
+                continue
+
+            img_url = img_tag['src']
+            if not img_url.startswith('http'):
+                img_url = requests.compat.urljoin(url, img_url)
+
+            if not _is_safe_url(img_url):
+                results.append({"url": url, "error": "Product image URL failed safety check."})
+                continue
+
+            img_resp = requests.get(img_url, headers=headers, timeout=10)
+            if img_resp.status_code != 200:
+                results.append({"url": url, "dress_image_url": img_url, "error": "Could not download image."})
+                continue
+            if len(img_resp.content) > MAX_SCRAPE_IMAGE_BYTES:
+                results.append({"url": url, "dress_image_url": img_url, "error": "Image too large."})
+                continue
+
+            cv_img = decode_image_bytes(img_resp.content)
+            if cv_img is None:
+                results.append({"url": url, "dress_image_url": img_url, "error": "Could not decode image."})
+                continue
+
+            dominant = extract_dominant_color(cv_img)
+            synergy = compute_synergy(dominant["hex_color"], request.season, request.closet_items)
+            synergy["new_item_color_name"] = dominant["color_name"]
+
+            results.append({
+                "url": url,
+                "dress_image_url": img_url,
+                "color_hex": dominant["hex_color"],
+                "color_name": dominant["color_name"],
+                **synergy,
+            })
+        except requests.Timeout:
+            results.append({"url": url, "error": "Request timed out."})
+        except Exception as e:
+            logger.warning("Batch scrape failed for %s: %s", url, e)
+            results.append({"url": url, "error": f"Scraping failed: {str(e)}"})
+
+    results.sort(key=lambda r: r.get("synergy_score", 0), reverse=True)
+    return {"results": results}
 
 
 @app.post("/analyze-clothing")

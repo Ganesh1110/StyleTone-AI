@@ -68,6 +68,9 @@ class ColorRecommendation {
   final MakeupPalette? makeupPalette;
   final List<String> hairColorPalette;
   final List<String> colorsToAvoid;
+  final String? styleArchetype;
+  final String? styleArchetypeDescription;
+  final double? skinLightness;
 
   ColorRecommendation({
     required this.detectedCategory,
@@ -79,6 +82,9 @@ class ColorRecommendation {
     this.makeupPalette,
     this.hairColorPalette = const [],
     this.colorsToAvoid = const [],
+    this.styleArchetype,
+    this.styleArchetypeDescription,
+    this.skinLightness,
   });
 
   // Getter shortcuts to retain backwards compatibility for parts of the app
@@ -124,6 +130,9 @@ class ColorRecommendation {
       makeupPalette: makeup,
       hairColorPalette: (json['hair_color_palette'] as List?)?.cast<String>() ?? [],
       colorsToAvoid: (json['colors_to_avoid'] as List?)?.cast<String>() ?? [],
+      styleArchetype: json['style_archetype'] as String?,
+      styleArchetypeDescription: json['style_archetype_description'] as String?,
+      skinLightness: (json['skin_lightness'] as num?)?.toDouble(),
     );
   }
 
@@ -137,5 +146,8 @@ class ColorRecommendation {
         if (makeupPalette != null) 'makeup_palette': makeupPalette!.toJson(),
         'hair_color_palette': hairColorPalette,
         'colors_to_avoid': colorsToAvoid,
+        if (styleArchetype != null) 'style_archetype': styleArchetype,
+        if (styleArchetypeDescription != null) 'style_archetype_description': styleArchetypeDescription,
+        if (skinLightness != null) 'skin_lightness': skinLightness,
       };
 }

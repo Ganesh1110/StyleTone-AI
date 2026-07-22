@@ -57,6 +57,9 @@ class StyleAnalytics {
   final String mostWornColorName;
   final String dominantSeason;
   final int streakDays;
+  final List<double> lightnessTrend;
+  final List<String> lightnessTrendDates;
+  final double onPalettePercent;
 
   const StyleAnalytics({
     this.totalScans = 0,
@@ -67,5 +70,8 @@ class StyleAnalytics {
     this.mostWornColorName = 'Unknown',
     this.dominantSeason = 'Unknown',
     this.streakDays = 0,
+    this.lightnessTrend = const [],
+    this.lightnessTrendDates = const [],
+    this.onPalettePercent = 0,
   });
 }

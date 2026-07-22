@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
@@ -8,6 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:image/image.dart' as img;
 
 import '../screens/preview_screen.dart';
+import '../services/tts_service.dart';
 
 class CameraScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -23,7 +25,8 @@ class CameraScreen extends StatefulWidget {
   State<CameraScreen> createState() => _CameraScreenState();
 }
 
-class _CameraScreenState extends State<CameraScreen> {
+class _CameraScreenState extends State<CameraScreen>
+    with SingleTickerProviderStateMixin {
   late CameraController _controller;
   bool _isCameraInitialized = false;
 
@@ -38,6 +41,18 @@ class _CameraScreenState extends State<CameraScreen> {
       minFaceSize: 0.15,
     ),
   );
+
+  // Voice guidance
+  final TtsService _tts = TtsService();
+  DateTime _lastGuidanceTime = DateTime.now().subtract(const Duration(seconds: 10));
+  bool _voiceGuidanceEnabled = true;
+
+  // White-balance calibration
+  bool _calibrationPhase = false;
+  double _wbGainR = 1.0;
+  double _wbGainG = 1.0;
+  double _wbGainB = 1.0;
+  bool _isCalibrated = false;
 
   CameraDescription _getCamera() {
     if (_isUsingFrontCamera) {
@@ -59,6 +74,9 @@ class _CameraScreenState extends State<CameraScreen> {
       await _controller.initialize();
       if (mounted) {
         setState(() => _isCameraInitialized = true);
+        if (_voiceGuidanceEnabled) {
+          _startVoiceGuidance();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -73,23 +91,188 @@ class _CameraScreenState extends State<CameraScreen> {
   void initState() {
     super.initState();
     _selectedOccasion = widget.initialOccasion;
+    _calibrationPhase = true;
     _initCamera();
+    _tts.init();
   }
 
   @override
   void dispose() {
+    _controller.stopImageStream();
     _controller.dispose();
     _faceDetector.close();
+    _tts.dispose();
     super.dispose();
   }
 
   Future<void> _switchCamera() async {
+    await _controller.stopImageStream();
+    await _controller.dispose();
     setState(() {
       _isUsingFrontCamera = !_isUsingFrontCamera;
       _isCameraInitialized = false;
     });
-    await _controller.dispose();
     await _initCamera();
+  }
+
+  void _startVoiceGuidance() {
+    _controller.startImageStream(_processGuidanceFrame);
+  }
+
+  DateTime _lastGuidanceFrame = DateTime.now();
+
+  void _processGuidanceFrame(CameraImage image) {
+    if (!_voiceGuidanceEnabled || !mounted) return;
+
+    final now = DateTime.now();
+    if (now.difference(_lastGuidanceFrame).inMilliseconds < 2000) return;
+    _lastGuidanceFrame = now;
+
+    try {
+      final inputImage = _buildInputImage(image);
+      if (inputImage == null) return;
+
+      _faceDetector.processImage(inputImage).then((faces) {
+        if (!mounted) return;
+        final guidance = _analyzeFaceGuidance(faces, image.width, image.height);
+        if (guidance != null && now.difference(_lastGuidanceTime).inSeconds >= 4) {
+          _lastGuidanceTime = now;
+          _tts.speak(guidance);
+        }
+      });
+    } catch (_) {}
+  }
+
+  InputImage? _buildInputImage(CameraImage image) {
+    final camera = _getCamera();
+    final sensorOrientation = camera.sensorOrientation;
+
+    InputImageRotation? rotation;
+    if (sensorOrientation == 90) {
+      rotation = InputImageRotation.rotation90deg;
+    } else if (sensorOrientation == 180) {
+      rotation = InputImageRotation.rotation180deg;
+    } else if (sensorOrientation == 270) {
+      rotation = InputImageRotation.rotation270deg;
+    } else {
+      rotation = InputImageRotation.rotation0deg;
+    }
+
+    final format = InputImageFormat.values.firstWhere(
+      (f) => f.name == image.format.raw.toString(),
+      orElse: () => InputImageFormat.nv21,
+    );
+
+    final plane = image.planes.first;
+    return InputImage.fromBytes(
+      bytes: plane.bytes,
+      metadata: InputImageMetadata(
+        size: Size(image.width.toDouble(), image.height.toDouble()),
+        rotation: rotation,
+        format: format,
+        bytesPerRow: plane.bytesPerRow,
+      ),
+    );
+  }
+
+  String? _analyzeFaceGuidance(List<Face> faces, int width, int height) {
+    if (faces.isEmpty) {
+      return 'Center your face in the oval.';
+    }
+
+    final face = faces.first;
+    final rect = face.boundingBox;
+    final centerX = rect.center.dx;
+    final centerY = rect.center.dy;
+    final frameCenterX = width / 2;
+    final frameCenterY = height / 2;
+    final faceArea = rect.width * rect.height;
+    const idealMinArea = 0.08;
+    const idealMaxArea = 0.30;
+    final frameArea = width * height;
+    final areaRatio = faceArea / frameArea;
+
+    final dx = (centerX - frameCenterX).abs() / width;
+    final dy = (centerY - frameCenterY).abs() / height;
+
+    if (areaRatio < idealMinArea) {
+      return 'Move closer to the camera.';
+    }
+    if (areaRatio > idealMaxArea) {
+      return 'Move slightly farther from the camera.';
+    }
+    if (dx > 0.12 || dy > 0.12) {
+      return 'Center your face in the oval.';
+    }
+    if (face.smilingProbability != null && face.smilingProbability! < 0.3) {
+      return 'A slight smile helps with accurate analysis.';
+    }
+    return 'Good position. Hold still and tap capture.';
+  }
+
+  Future<void> _calibrateWhiteBalance() async {
+    try {
+      final image = await _controller.takePicture();
+      final file = File(image.path);
+      final bytes = await file.readAsBytes();
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) return;
+
+      final cx = decoded.width ~/ 2;
+      final cy = decoded.height ~/ 2;
+      int sumR = 0, sumG = 0, sumB = 0, count = 0;
+
+      for (int dy = -10; dy <= 10; dy++) {
+        for (int dx = -10; dx <= 10; dx++) {
+          final p = decoded.getPixel((cx + dx).clamp(0, decoded.width - 1), (cy + dy).clamp(0, decoded.height - 1));
+          sumR += p.r.toInt();
+          sumG += p.g.toInt();
+          sumB += p.b.toInt();
+          count++;
+        }
+      }
+
+      final avgR = sumR / count;
+      final avgG = sumG / count;
+      final avgB = sumB / count;
+
+      setState(() {
+        _wbGainR = 255.0 / avgR;
+        _wbGainG = 255.0 / avgG;
+        _wbGainB = 255.0 / avgB;
+        _isCalibrated = true;
+        _calibrationPhase = false;
+      });
+
+      if (_voiceGuidanceEnabled && mounted) {
+        _tts.speak('White balance calibrated. You can now take your selfie.');
+      }
+
+      file.delete();
+    } catch (e) {
+      debugPrint('Calibration failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Calibration failed. Using default white balance.')),
+        );
+        setState(() => _calibrationPhase = false);
+      }
+    }
+  }
+
+  img.Image _applyWhiteBalance(img.Image source) {
+    if (_wbGainR == 1.0 && _wbGainG == 1.0 && _wbGainB == 1.0) return source;
+    final corrected = img.Image(width: source.width, height: source.height);
+    for (int y = 0; y < source.height; y++) {
+      for (int x = 0; x < source.width; x++) {
+        final p = source.getPixel(x, y);
+        final r = (p.r.toInt() * _wbGainR).clamp(0, 255).toInt();
+        final g = (p.g.toInt() * _wbGainG).clamp(0, 255).toInt();
+        final b = (p.b.toInt() * _wbGainB).clamp(0, 255).toInt();
+        corrected.setPixelRgba(x, y, r, g, b, 255);
+      }
+    }
+    return corrected;
   }
 
   Future<void> _takePictureAndProcess() async {
@@ -101,16 +284,33 @@ class _CameraScreenState extends State<CameraScreen> {
       final image = await _controller.takePicture();
       final File originalFile = File(image.path);
 
-      final inputImage = InputImage.fromFile(originalFile);
+      // Apply white-balance correction if calibrated
+      File processedFile;
+      if (_isCalibrated) {
+        final bytes = await originalFile.readAsBytes();
+        final decoded = img.decodeImage(bytes);
+        if (decoded != null) {
+          final corrected = _applyWhiteBalance(decoded);
+          final tempDir = await getTemporaryDirectory();
+          final correctedPath = p.join(tempDir.path, 'wb_corrected.jpg');
+          await File(correctedPath).writeAsBytes(img.encodeJpg(corrected, quality: 90));
+          processedFile = File(correctedPath);
+        } else {
+          processedFile = originalFile;
+        }
+      } else {
+        processedFile = originalFile;
+      }
+
+      final inputImage = InputImage.fromFile(processedFile);
       final List<Face> faces = await _faceDetector.processImage(inputImage);
 
       File croppedFile;
-
       if (faces.isNotEmpty) {
         final face = faces.first;
         final rect = face.boundingBox;
 
-        final bytes = await originalFile.readAsBytes();
+        final bytes = await processedFile.readAsBytes();
         final decodedImage = img.decodeImage(bytes);
 
         if (decodedImage != null) {
@@ -119,26 +319,17 @@ class _CameraScreenState extends State<CameraScreen> {
           int w = rect.width.toInt().clamp(1, decodedImage.width - x);
           int h = rect.height.toInt().clamp(1, decodedImage.height - y);
 
-          final croppedImg = img.copyCrop(
-            decodedImage,
-            x: x,
-            y: y,
-            width: w,
-            height: h,
-          );
+          final croppedImg = img.copyCrop(decodedImage, x: x, y: y, width: w, height: h);
 
           final tempDir = await getTemporaryDirectory();
           final croppedPath = p.join(tempDir.path, 'face_crop.jpg');
-          await File(
-            croppedPath,
-          ).writeAsBytes(img.encodeJpg(croppedImg, quality: 90));
-
+          await File(croppedPath).writeAsBytes(img.encodeJpg(croppedImg, quality: 90));
           croppedFile = File(croppedPath);
         } else {
-          croppedFile = originalFile;
+          croppedFile = processedFile;
         }
       } else {
-        croppedFile = originalFile;
+        croppedFile = processedFile;
       }
 
       if (mounted) {
@@ -153,11 +344,16 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
         );
       }
+
+      // Clean up temp files
+      if (processedFile.path != originalFile.path) {
+        originalFile.delete();
+      }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error capturing image: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error capturing image: $e')),
+        );
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -195,7 +391,25 @@ class _CameraScreenState extends State<CameraScreen> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: Icon(_isUsingFrontCamera ? Icons.camera_rear : Icons.camera_front),
+            icon: Icon(
+              _voiceGuidanceEnabled ? Icons.volume_up : Icons.volume_off,
+            ),
+            onPressed: () {
+              setState(() => _voiceGuidanceEnabled = !_voiceGuidanceEnabled);
+              if (_voiceGuidanceEnabled) {
+                _tts.speak('Voice guidance enabled.');
+                _startVoiceGuidance();
+              } else {
+                _controller.stopImageStream();
+                _tts.stop();
+              }
+            },
+            tooltip: _voiceGuidanceEnabled ? 'Mute guidance' : 'Enable guidance',
+          ),
+          IconButton(
+            icon: Icon(
+              _isUsingFrontCamera ? Icons.camera_rear : Icons.camera_front,
+            ),
             onPressed: _switchCamera,
             tooltip: 'Switch Camera',
           ),
@@ -218,7 +432,7 @@ class _CameraScreenState extends State<CameraScreen> {
                   const Center(
                     child: CircularProgressIndicator(color: Colors.white),
                   ),
-                // Face guide overlay (semitransparent dim outer, transparent oval center)
+                // Face guide overlay
                 Positioned.fill(
                   child: ClipPath(
                     clipper: FaceOverlayClipper(),
@@ -227,29 +441,36 @@ class _CameraScreenState extends State<CameraScreen> {
                     ),
                   ),
                 ),
-                // White oval guide border and instructional text
+                // Oval guide + text
                 Center(
                   child: Container(
                     width: MediaQuery.of(context).size.width * 0.7,
                     height: MediaQuery.of(context).size.height * 0.45,
                     decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.elliptical(200, 250)),
+                      borderRadius: const BorderRadius.all(
+                        Radius.elliptical(200, 250),
+                      ),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        width: 2.5,
+                        color: _calibrationPhase
+                            ? Colors.amber.withValues(alpha: 0.8)
+                            : Colors.white.withValues(alpha: 0.8),
+                        width: _calibrationPhase ? 3.0 : 2.5,
                       ),
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.face,
+                          _calibrationPhase ? Icons.wb_sunny : Icons.face,
                           size: 48,
-                          color: Colors.white.withValues(alpha: 0.8),
+                          color: (_calibrationPhase ? Colors.amber : Colors.white)
+                              .withValues(alpha: 0.8),
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Position your face here',
+                          _calibrationPhase
+                              ? 'Hold a white/gray object in frame'
+                              : 'Position your face here',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.9),
                             fontSize: 14,
@@ -262,6 +483,7 @@ class _CameraScreenState extends State<CameraScreen> {
                               ),
                             ],
                           ),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
@@ -278,12 +500,13 @@ class _CameraScreenState extends State<CameraScreen> {
               ],
             ),
           ),
-          // Occasion label + capture button
+          // Bottom bar
           Container(
             color: Colors.black,
             padding: const EdgeInsets.symmetric(vertical: 20.0),
             child: Column(
               children: [
+                // Occasion chip
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -304,25 +527,72 @@ class _CameraScreenState extends State<CameraScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3),
+                if (_calibrationPhase) ...[
+                  ElevatedButton.icon(
+                    onPressed: _isProcessing ? null : _calibrateWhiteBalance,
+                    icon: const Icon(Icons.wb_sunny),
+                    label: const Text('Calibrate White Balance'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amber,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    FloatingActionButton(
-                      onPressed: _isProcessing ? null : _takePictureAndProcess,
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.deepPurple,
-                      child: const Icon(Icons.camera_alt, size: 32),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () => setState(() => _calibrationPhase = false),
+                    child: const Text(
+                      'Skip calibration',
+                      style: TextStyle(color: Colors.white38, fontSize: 12),
                     ),
-                  ],
-                ),
+                  ),
+                ] else ...[
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: _isCalibrated
+                                ? Colors.amber.withValues(alpha: 0.6)
+                                : Colors.white,
+                            width: _isCalibrated ? 2.5 : 3,
+                          ),
+                        ),
+                      ),
+                      FloatingActionButton(
+                        onPressed: _isProcessing ? null : _takePictureAndProcess,
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.deepPurple,
+                        child: const Icon(Icons.camera_alt, size: 32),
+                      ),
+                    ],
+                  ),
+                  if (_isCalibrated)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check_circle, size: 14, color: Colors.amber),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'WB calibrated',
+                            style: TextStyle(color: Colors.amber, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ],
             ),
           ),

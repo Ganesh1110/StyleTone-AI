@@ -22,6 +22,21 @@ const Map<String, String> _subbaseMap = {
   "Bright Winter": "Winter",
 };
 
+const Map<String, List<String>> _styleArchetypes = {
+  "Light Spring": ["The Warm Minimalist", "Delicate warmth with an airy, understated elegance. Think soft luminosity, not loud colour."],
+  "Warm Spring": ["The Golden Hour", "Sun-kissed and approachable. Your palette glows with honeyed warmth and cheerful energy."],
+  "Bright Spring": ["The Vibrant Optimist", "Bold, clear, and saturated. You radiate confidence and a playful zest for life."],
+  "Light Summer": ["The Ethereal Cool", "Graceful, muted, and serene. Your look whispers refinement with a cool, misty palette."],
+  "Cool Summer": ["The Elegant Rose", "True cool composure. Dusty pinks and steel blues create a quietly powerful, polished presence."],
+  "Soft Summer": ["The Smoky Classic", "Muted sophistication with a hint of mystery. Greyed tones give you an understated, timeless edge."],
+  "Soft Autumn": ["The Earthy Minimalist", "Subtle warmth grounded in nature. Olive, clay, and taupe speak a quiet, confident language."],
+  "Warm Autumn": ["The Amber Glow", "Rich, golden, and deeply warm. Terracotta and mustard tell a story of harvest abundance."],
+  "Deep Autumn": ["The Forest Depth", "Dark, opulent, and grounded. Espresso, rust, and pine project strength without shouting."],
+  "Deep Winter": ["The Dark Luxe", "High-contrast depth with icy edge. Midnight and charcoal create a commanding, dramatic silhouette."],
+  "Cool Winter": ["The Ice Queen", "Crystal-clear cool that stops the room. Royal blue and emerald demand attention with precision."],
+  "Bright Winter": ["The Electric Edge", "Brilliant, chromatic, and fearless. Hot pink and electric blue are your superpowers."],
+};
+
 const Map<String, List<List<int>>> _seasonAnchorsRgb = {
   "Light Spring": [
     [250, 225, 195],
@@ -797,6 +812,8 @@ Future<Map<String, dynamic>?> processSelfie(img.Image image, {String gender = "n
     // Colors to avoid
     final avoidOut = (palette["colors_to_avoid"] as List?)?.cast<String>() ?? [];
 
+    final archetype = _styleArchetypes[detectedSeason] ?? ["The Stylist", "Your personal colour story is still being written."];
+
     return {
       "detected_category": _skinToneLabels[detectedSeason] ?? "$detectedSeason Season",
       "detected_subseason": detectedSeason,
@@ -807,6 +824,9 @@ Future<Map<String, dynamic>?> processSelfie(img.Image image, {String gender = "n
       "makeup_palette": makeupOut,
       "hair_color_palette": hairOut,
       "colors_to_avoid": avoidOut,
+      "style_archetype": archetype[0],
+      "style_archetype_description": archetype[1],
+      "skin_lightness": lStar,
     };
   } catch (e) {
     debugPrint("SkinAnalyzer.processSelfie failed: $e");
