@@ -42,6 +42,8 @@ class ImageRequest(BaseModel):
     occasion: Optional[str] = "casual"
     gender: Optional[str] = "neutral"
     face_already_cropped: bool = False
+    hair_color: Optional[str] = None
+    eye_color: Optional[str] = None
 
 
 class DressUrlRequest(BaseModel):
@@ -104,7 +106,13 @@ async def get_color_recommendation(request: ImageRequest):
         )
 
     try:
-        result = process_selfie(request.image, request.gender, request.face_already_cropped)
+        result = process_selfie(
+            request.image,
+            gender=request.gender,
+            face_already_cropped=request.face_already_cropped,
+            hair_color=request.hair_color,
+            eye_color=request.eye_color,
+        )
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

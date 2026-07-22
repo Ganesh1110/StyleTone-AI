@@ -172,8 +172,12 @@ class _ResultScreenState extends State<ResultScreen>
       _recommendation = recommendation;
       _isLoading = false;
     });
-    HistoryService().saveItem(widget.imageFile, widget.occasion, recommendation)
-        .then((id) { _historyId = id; if (mounted) setState(() {}); });
+    HistoryService()
+        .saveItem(widget.imageFile, widget.occasion, recommendation)
+        .then((id) {
+          _historyId = id;
+          if (mounted) setState(() {});
+        });
     _speakRecommendation(auto: true);
   }
 
@@ -192,11 +196,13 @@ class _ResultScreenState extends State<ResultScreen>
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(nextRating == 1
-              ? 'Thanks for the feedback! (Liked)'
-              : nextRating == -1
-                  ? 'Thanks for the feedback! (Disliked)'
-                  : 'Feedback cleared.'),
+          content: Text(
+            nextRating == 1
+                ? 'Thanks for the feedback! (Liked)'
+                : nextRating == -1
+                ? 'Thanks for the feedback! (Disliked)'
+                : 'Feedback cleared.',
+          ),
           duration: const Duration(seconds: 1),
         ),
       );
@@ -235,7 +241,10 @@ class _ResultScreenState extends State<ResultScreen>
               ),
               title: Row(
                 children: [
-                  Icon(Icons.download_rounded, color: Theme.of(context).colorScheme.primary),
+                  Icon(
+                    Icons.download_rounded,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   const SizedBox(width: 12),
                   const Text('Downloading Voice'),
                 ],
@@ -244,14 +253,15 @@ class _ResultScreenState extends State<ResultScreen>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    status,
-                    style: const TextStyle(fontSize: 14),
-                  ),
+                  Text(status, style: const TextStyle(fontSize: 14)),
                   const SizedBox(height: 16),
                   LinearProgressIndicator(
-                    value: progress == 0.0 && _tts.isInitializing ? null : progress,
-                    backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    value: progress == 0.0 && _tts.isInitializing
+                        ? null
+                        : progress,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                     color: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(height: 8),
@@ -291,7 +301,9 @@ class _ResultScreenState extends State<ResultScreen>
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_tts.statusMessage ?? 'Failed to initialize voice')),
+          SnackBar(
+            content: Text(_tts.statusMessage ?? 'Failed to initialize voice'),
+          ),
         );
       }
     }
@@ -313,20 +325,26 @@ class _ResultScreenState extends State<ResultScreen>
     return _casualShareKey;
   }
 
-  Future<void> _sharePalette(ColorRecommendation rec, String occasionKey) async {
+  Future<void> _sharePalette(
+    ColorRecommendation rec,
+    String occasionKey,
+  ) async {
     try {
       final boundaryKey = _getShareKey(occasionKey);
       final RenderRepaintBoundary? boundary =
-          boundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      
+          boundaryKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
+
       if (boundary == null) {
         throw Exception('Could not find paint boundary');
       }
 
       // Capture image frame
       final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      
+      final ByteData? byteData = await image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+
       if (byteData == null) {
         throw Exception('Could not encode image data');
       }
@@ -336,22 +354,25 @@ class _ResultScreenState extends State<ResultScreen>
       // Save to cache dir
       final tempDir = await getTemporaryDirectory();
       final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      final tempFile = File(p.join(tempDir.path, 'style_report_${occasionKey}_$timestamp.png'));
+      final tempFile = File(
+        p.join(tempDir.path, 'style_report_${occasionKey}_$timestamp.png'),
+      );
       await tempFile.writeAsBytes(pngBytes);
 
       // Trigger sharing dialog
       await Share.shareXFiles(
         [XFile(tempFile.path)],
-        text: 'Check out my StyleTone AI ${occasionKey.toUpperCase()} Style Palette!\n'
+        text:
+            'Check out my StyleTone AI ${occasionKey.toUpperCase()} Style Palette!\n'
             'Seasonal category: ${rec.detectedCategory}\n'
             'Explanation: ${rec.explanation}',
       );
     } catch (e) {
       debugPrint('Sharing failed: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sharing failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Sharing failed: $e')));
       }
     }
   }
@@ -456,8 +477,8 @@ class _ResultScreenState extends State<ResultScreen>
         child: _isLoading
             ? _buildLoadingState()
             : _errorMessage.isNotEmpty
-                ? _buildErrorState()
-                : _buildResultState(),
+            ? _buildErrorState()
+            : _buildResultState(),
       ),
     );
   }
@@ -467,7 +488,10 @@ class _ResultScreenState extends State<ResultScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SpinKitFadingCube(color: Theme.of(context).colorScheme.primary, size: 50.0),
+          SpinKitFadingCube(
+            color: Theme.of(context).colorScheme.primary,
+            size: 50.0,
+          ),
           const SizedBox(height: 32),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
@@ -488,7 +512,11 @@ class _ResultScreenState extends State<ResultScreen>
             child: Text(
               _loadingSteps[_currentStepIndex],
               key: ValueKey<int>(_currentStepIndex),
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               textAlign: TextAlign.center,
             ),
           ),
@@ -558,10 +586,20 @@ class _ResultScreenState extends State<ResultScreen>
 
   String _extractBaseSeason(String detectedCategory) {
     final lower = detectedCategory.toLowerCase();
-    if (lower.contains('spring') || lower.contains('golden') || lower.contains('peach')) return 'spring';
-    if (lower.contains('summer') || lower.contains('rosy') || lower.contains('pink')) return 'summer';
-    if (lower.contains('autumn') || lower.contains('bronze') || lower.contains('honey')) return 'autumn';
-    if (lower.contains('winter') || lower.contains('high-contrast')) return 'winter';
+    if (lower.contains('spring') ||
+        lower.contains('golden') ||
+        lower.contains('peach'))
+      return 'spring';
+    if (lower.contains('summer') ||
+        lower.contains('rosy') ||
+        lower.contains('pink'))
+      return 'summer';
+    if (lower.contains('autumn') ||
+        lower.contains('bronze') ||
+        lower.contains('honey'))
+      return 'autumn';
+    if (lower.contains('winter') || lower.contains('high-contrast'))
+      return 'winter';
     return '';
   }
 
@@ -589,7 +627,9 @@ class _ResultScreenState extends State<ResultScreen>
             margin: EdgeInsets.zero,
             color: themeConfig.primary.withValues(alpha: 0.08),
             padding: const EdgeInsets.all(14),
-            border: Border.all(color: themeConfig.primary.withValues(alpha: 0.3)),
+            border: Border.all(
+              color: themeConfig.primary.withValues(alpha: 0.3),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -614,12 +654,18 @@ class _ResultScreenState extends State<ResultScreen>
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: theme.textTheme.bodyLarge?.color ?? Colors.white,
+                          color:
+                              theme.textTheme.bodyLarge?.color ?? Colors.white,
                         ),
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.close, size: 16, color: theme.textTheme.bodyMedium?.color ?? Colors.white60),
+                      icon: Icon(
+                        Icons.close,
+                        size: 16,
+                        color:
+                            theme.textTheme.bodyMedium?.color ?? Colors.white60,
+                      ),
                       onPressed: () async {
                         final profile = await ProfileService().getProfile();
                         final updated = profile.copyWith(
@@ -636,7 +682,10 @@ class _ResultScreenState extends State<ResultScreen>
                 const SizedBox(height: 6),
                 Text(
                   '${season.substring(0, 1).toUpperCase()}${season.substring(1)} — ${themeConfig.description}',
-                  style: TextStyle(fontSize: 12, color: theme.textTheme.bodyMedium?.color ?? Colors.white60),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: theme.textTheme.bodyMedium?.color ?? Colors.white60,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 SizedBox(
@@ -647,14 +696,18 @@ class _ResultScreenState extends State<ResultScreen>
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('${themeConfig.label} theme applied!'),
+                            content: Text(
+                              '${themeConfig.label} theme applied!',
+                            ),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
                       }
                     },
                     style: TextButton.styleFrom(
-                      backgroundColor: themeConfig.primary.withValues(alpha: 0.15),
+                      backgroundColor: themeConfig.primary.withValues(
+                        alpha: 0.15,
+                      ),
                       foregroundColor: themeConfig.primary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -680,11 +733,18 @@ class _ResultScreenState extends State<ResultScreen>
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Container(
+          width: 250,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+            color: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.3),
+            ),
           ),
           child: Text(
             'Detected: ${rec.detectedCategory}',
@@ -740,25 +800,53 @@ class _ResultScreenState extends State<ResultScreen>
         children: [
           // Styling Tips Card
           GlassCard(
-            margin: EdgeInsets.zero,
-            color: Colors.white.withValues(alpha: 0.05),
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              palette.message,
-              style: const TextStyle(
-                fontSize: 15,
-                height: 1.4,
-                color: Colors.white,
-                fontWeight: FontWeight.w400,
+                margin: EdgeInsets.zero,
+                color: Colors.white.withValues(alpha: 0.05),
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  palette.message,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    height: 1.4,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              )
+              .animate()
+              .fadeIn(duration: 400.ms)
+              .slideY(begin: 0.1, end: 0, duration: 400.ms),
+          const SizedBox(height: 24),
+
+          // Subseason indicator
+          if (rec.detectedSubseason != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.25)),
+              ),
+              child: Text(
+                'Sub-season: ${rec.detectedSubseason}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.amber,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0, duration: 400.ms),
-          const SizedBox(height: 24),
+            const SizedBox(height: 12),
+          ],
 
           // Palette Header
           const Text(
             'Recommended Swatches (Tap to style)',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white60),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.white60,
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -767,7 +855,11 @@ class _ResultScreenState extends State<ResultScreen>
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildColorSwatch('Primary', palette.primaryColor, occasionKey),
-              _buildColorSwatch('Secondary', palette.secondaryColor, occasionKey),
+              _buildColorSwatch(
+                'Secondary',
+                palette.secondaryColor,
+                occasionKey,
+              ),
               _buildColorSwatch('Accent', palette.accentColor, occasionKey),
             ],
           ),
@@ -775,96 +867,277 @@ class _ResultScreenState extends State<ResultScreen>
 
           // Explainable AI Card wrapped in sharing boundary
           RepaintBoundary(
-            key: _getShareKey(occasionKey),
-            child: GlassCard(
-              margin: EdgeInsets.zero,
-              color: Colors.white.withValues(alpha: 0.05),
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                key: _getShareKey(occasionKey),
+                child: GlassCard(
+                  margin: EdgeInsets.zero,
+                  color: Colors.white.withValues(alpha: 0.05),
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Row(
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(Icons.auto_awesome, color: Colors.white, size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            'AI Color Analysis',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                          const Row(
+                            children: [
+                              Icon(
+                                Icons.auto_awesome,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'AI Color Analysis',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.share_rounded,
                               color: Colors.white,
+                              size: 20,
                             ),
+                            onPressed: () => _sharePalette(rec, occasionKey),
+                            tooltip: 'Share styling card',
                           ),
                         ],
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.share_rounded, color: Colors.white, size: 20),
-                        onPressed: () => _sharePalette(rec, occasionKey),
-                        tooltip: 'Share styling card',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    rec.explanation,
-                    style: const TextStyle(
-                      fontSize: 14.5,
-                      height: 1.5,
-                      color: Colors.white70,
-                    ),
-                  ),
-                  const Divider(height: 32, color: Colors.white24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Was this analysis accurate?',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white60,
+                      const SizedBox(height: 12),
+                      Text(
+                        rec.explanation,
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          height: 1.5,
+                          color: Colors.white70,
                         ),
                       ),
+                      const Divider(height: 32, color: Colors.white24),
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          IconButton(
-                            icon: Icon(
-                              _rating == 1
-                                  ? Icons.thumb_up_rounded
-                                  : Icons.thumb_up_outlined,
-                              color: _rating == 1 ? Colors.green : Colors.grey,
-                              size: 20,
+                          const Text(
+                            'Was this analysis accurate?',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white60,
                             ),
-                            onPressed: _historyId == null
-                                ? null
-                                : () => _updateRating(1),
                           ),
-                          IconButton(
-                            icon: Icon(
-                              _rating == -1
-                                  ? Icons.thumb_down_rounded
-                                  : Icons.thumb_down_outlined,
-                              color: _rating == -1 ? Colors.red : Colors.grey,
-                              size: 20,
-                            ),
-                            onPressed: _historyId == null
-                                ? null
-                                : () => _updateRating(-1),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  _rating == 1
+                                      ? Icons.thumb_up_rounded
+                                      : Icons.thumb_up_outlined,
+                                  color: _rating == 1
+                                      ? Colors.green
+                                      : Colors.grey,
+                                  size: 20,
+                                ),
+                                onPressed: _historyId == null
+                                    ? null
+                                    : () => _updateRating(1),
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  _rating == -1
+                                      ? Icons.thumb_down_rounded
+                                      : Icons.thumb_down_outlined,
+                                  color: _rating == -1
+                                      ? Colors.red
+                                      : Colors.grey,
+                                  size: 20,
+                                ),
+                                onPressed: _historyId == null
+                                    ? null
+                                    : () => _updateRating(-1),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ],
                   ),
-                ],
+                ),
+              )
+              .animate()
+              .fadeIn(duration: 500.ms, delay: 200.ms)
+              .slideY(begin: 0.1, end: 0, duration: 400.ms),
+          const SizedBox(height: 24),
+
+          // Makeup Palette
+          if (rec.makeupPalette != null) ...[
+            const Text(
+              'Makeup Palette',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white60,
               ),
             ),
-          ).animate().fadeIn(duration: 500.ms, delay: 200.ms).slideY(begin: 0.1, end: 0, duration: 400.ms),
-          const SizedBox(height: 24),
+            const SizedBox(height: 12),
+            _buildMakeupSection(rec.makeupPalette!),
+            const SizedBox(height: 24),
+          ],
+
+          // Hair Color Palette
+          if (rec.hairColorPalette.isNotEmpty) ...[
+            const Text(
+              'Recommended Hair Colors',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white60,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildHairColorSection(rec.hairColorPalette),
+            const SizedBox(height: 24),
+          ],
+
+          // Colors to Avoid
+          if (rec.colorsToAvoid.isNotEmpty) ...[
+            const Text(
+              'Colors to Avoid',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFFF5252),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildAvoidColorsSection(rec.colorsToAvoid),
+            const SizedBox(height: 24),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildMakeupSection(MakeupPalette makeup) {
+    final categories = [
+      ('Lip', makeup.lip, Icons.face_rounded),
+      ('Eye', makeup.eye, Icons.visibility_rounded),
+      ('Cheek', makeup.cheek, Icons.favorite_rounded),
+      ('Nail', makeup.nail, Icons.pan_tool_rounded),
+    ];
+    return Column(
+      children: categories.map((cat) {
+        final label = cat.$1;
+        final colors = cat.$2;
+        final icon = cat.$3;
+        if (colors.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              Icon(icon, color: Colors.white38, size: 16),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 36,
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white54,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ...colors.map(
+                (hex) => Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Tooltip(
+                    message: hex.toUpperCase(),
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: Color(int.parse(hex.replaceFirst('#', '0xFF'))),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white24, width: 1),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildHairColorSection(List<String> colors) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: colors.map((hex) {
+        final parsedColor = Color(int.parse(hex.replaceFirst('#', '0xFF')));
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: parsedColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white24, width: 1.5),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              hex.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 8,
+                color: Colors.grey,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ],
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildAvoidColorsSection(List<String> colors) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: colors.map((hex) {
+        final parsedColor = Color(int.parse(hex.replaceFirst('#', '0xFF')));
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: parsedColor,
+                shape: BoxShape.circle,
+                border: Border.all(width: 1.5),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              hex.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 8,
+                color: Colors.grey,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ],
+        );
+      }).toList(),
     );
   }
 
@@ -872,7 +1145,8 @@ class _ResultScreenState extends State<ResultScreen>
     final parsedColor = Color(int.parse(hexCode.replaceFirst('#', '0xFF')));
 
     return GestureDetector(
-      onTap: () => _showReadyToWearBlueprint(context, label, hexCode, occasionKey),
+      onTap: () =>
+          _showReadyToWearBlueprint(context, label, hexCode, occasionKey),
       child: Column(
         children: [
           Container(
@@ -887,8 +1161,8 @@ class _ResultScreenState extends State<ResultScreen>
                   color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 6,
                   offset: const Offset(0, 3),
-                )
-              ]
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 8),

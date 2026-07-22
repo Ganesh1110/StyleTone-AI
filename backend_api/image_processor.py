@@ -229,7 +229,115 @@ def _detect_face(img: np.ndarray) -> np.ndarray:
     return img[y:y + h, x:x + w]
 
 
+# ---------------------------------------------------------------------------
+# 12-Season colour system
+# Each subseason has anchor RGB samples representing skin-tone clusters.
+# ---------------------------------------------------------------------------
+
+SUBBASE_MAP = {
+    "Light Spring": "Spring",
+    "Warm Spring": "Spring",
+    "Bright Spring": "Spring",
+    "Light Summer": "Summer",
+    "Cool Summer": "Summer",
+    "Soft Summer": "Summer",
+    "Soft Autumn": "Autumn",
+    "Warm Autumn": "Autumn",
+    "Deep Autumn": "Autumn",
+    "Deep Winter": "Winter",
+    "Cool Winter": "Winter",
+    "Bright Winter": "Winter",
+}
+
 SEASON_ANCHORS_RGB = {
+    "Light Spring": [
+        [250, 225, 195],
+        [248, 218, 185],
+        [245, 230, 210],
+        [255, 235, 205],
+        [240, 220, 190],
+    ],
+    "Warm Spring": [
+        [240, 200, 155],
+        [235, 195, 145],
+        [225, 185, 135],
+        [248, 213, 177],
+        [230, 190, 148],
+    ],
+    "Bright Spring": [
+        [235, 195, 145],
+        [220, 175, 120],
+        [240, 205, 165],
+        [210, 170, 110],
+        [228, 184, 137],
+    ],
+    "Light Summer": [
+        [240, 220, 210],
+        [236, 213, 197],
+        [245, 230, 225],
+        [230, 210, 200],
+        [250, 240, 245],
+    ],
+    "Cool Summer": [
+        [225, 200, 190],
+        [215, 190, 180],
+        [220, 200, 190],
+        [210, 185, 175],
+        [230, 210, 200],
+    ],
+    "Soft Summer": [
+        [210, 190, 180],
+        [200, 180, 170],
+        [195, 175, 165],
+        [215, 195, 185],
+        [205, 185, 175],
+    ],
+    "Soft Autumn": [
+        [195, 150, 105],
+        [185, 140, 95],
+        [190, 145, 100],
+        [200, 155, 110],
+        [180, 135, 90],
+    ],
+    "Warm Autumn": [
+        [185, 135, 85],
+        [172, 122, 75],
+        [165, 115, 68],
+        [190, 140, 90],
+        [178, 128, 80],
+    ],
+    "Deep Autumn": [
+        [155, 105, 60],
+        [145, 95, 55],
+        [133, 84, 46],
+        [160, 110, 60],
+        [140, 90, 50],
+    ],
+    "Deep Winter": [
+        [110, 75, 52],
+        [90, 60, 40],
+        [80, 55, 40],
+        [120, 81, 57],
+        [100, 70, 50],
+    ],
+    "Cool Winter": [
+        [174, 144, 118],
+        [155, 125, 100],
+        [200, 180, 165],
+        [165, 135, 110],
+        [185, 160, 140],
+    ],
+    "Bright Winter": [
+        [240, 235, 230],
+        [250, 244, 240],
+        [230, 220, 215],
+        [245, 240, 235],
+        [235, 225, 220],
+    ],
+}
+
+# Keep the 4-season anchors for fallback / backward compat
+FOUR_SEASON_ANCHORS_RGB = {
     "Spring": [
         [248, 213, 177],
         [243, 225, 196],
@@ -271,7 +379,7 @@ SEASON_ANCHORS_RGB = {
     ],
 }
 
-SEASON_PALETTES = {
+FOUR_SEASON_PALETTES = {
     "Spring": {
         "office": ["#C28E75", "#D6C5A8", "#477876"],
         "party": ["#FF7F50", "#FFD700", "#008080"],
@@ -300,6 +408,210 @@ SEASON_PALETTES = {
         "explanation_undertone": "cool high-contrast",
         "season_descr": "Your skin has a striking cool undertone. Bold, saturated colors like royal blue, emerald green, and vivid ruby red will make you stand out beautifully.",
     },
+}
+
+SEASON_PALETTES = {
+    "Light Spring": {
+        "office": ["#C28E75", "#E8D5B7", "#7BA898"],
+        "party": ["#FF9B7A", "#FFE066", "#5BA89B"],
+        "casual": ["#F0B89A", "#FFF5E0", "#7FC9B6"],
+        "explanation_undertone": "warm golden/peach — light value",
+        "season_descr": "Delicate, warm colouring with light skin. Soft coral, buttercream, and dusty teal bring out your gentle golden glow without overwhelming your fair features.",
+        "makeup_palette": {
+            "lip": ["#FF9B7A", "#F0B89A", "#E8A87C"],
+            "eye": ["#D4C5A9", "#B8A98A", "#A8C5B0"],
+            "cheek": ["#F5C8B0", "#F0B89A", "#E8C4A0"],
+            "nail": ["#FFBFA0", "#F5E0C0", "#C0D6C8"],
+        },
+        "hair_color_palette": ["#C4A882", "#B8976A", "#D4BFA0", "#A08060", "#E8D5B7"],
+        "colors_to_avoid": ["#1A1A2E", "#800020", "#4A0E4E", "#2F4F4F", "#000000", "#8B0000", "#191970"],
+    },
+    "Warm Spring": {
+        "office": ["#C28E75", "#D6C5A8", "#477876"],
+        "party": ["#FF7F50", "#FFD700", "#008080"],
+        "casual": ["#E9967A", "#F5F5DC", "#20B2AA"],
+        "explanation_undertone": "warm golden/peach — medium saturation",
+        "season_descr": "Your skin radiates soft, golden warmth. Pastel oranges, bright cream, and warm teals will look exceptionally luminous on you.",
+        "makeup_palette": {
+            "lip": ["#FF7F50", "#E05A47", "#FF9B7A"],
+            "eye": ["#D4A858", "#C49A3C", "#A8B89A"],
+            "cheek": ["#F0A070", "#E88A60", "#F5C0A0"],
+            "nail": ["#FF9955", "#E8C840", "#80B8A0"],
+        },
+        "hair_color_palette": ["#B8824A", "#A07040", "#C89860", "#D4B080", "#8A6840"],
+        "colors_to_avoid": ["#4A4A7A", "#2E1A47", "#1A1A3E", "#3A2A5E", "#6B3A5E", "#0A0A2E", "#5A3A6A"],
+    },
+    "Bright Spring": {
+        "office": ["#D4885A", "#E8D5A0", "#2A9A7A"],
+        "party": ["#FF6B40", "#FFD700", "#00A080"],
+        "casual": ["#FF8A6A", "#FFF0C0", "#30B8A0"],
+        "explanation_undertone": "warm golden/peach — high chroma",
+        "season_descr": "Clear, warm colouring with bright contrast. Vivid coral, sunny yellow, and vibrant teal match your energetic, luminous presence.",
+        "makeup_palette": {
+            "lip": ["#FF6B40", "#FF4500", "#FF8A6A"],
+            "eye": ["#D4B050", "#C0A040", "#80B090"],
+            "cheek": ["#FF8A5A", "#F07040", "#FFB080"],
+            "nail": ["#FF6030", "#FFD700", "#20A880"],
+        },
+        "hair_color_palette": ["#A06830", "#8A5828", "#B87840", "#C89858", "#785028"],
+        "colors_to_avoid": ["#3A3A6A", "#2A1A5E", "#4A3A7A", "#1A1A4E", "#6A3A5A", "#0E0E3A", "#5A2A6A"],
+    },
+    "Light Summer": {
+        "office": ["#B08B9E", "#A8B0C0", "#8AA0A8"],
+        "party": ["#DA8A9F", "#B0A0D0", "#7A98B8"],
+        "casual": ["#E8B0C0", "#D0D8E8", "#90B0B8"],
+        "explanation_undertone": "cool rosy/pink — light value",
+        "season_descr": "Your skin features soft, rosy undertones with light value. Dusty rose pinks, soft lavenders, and cool slate grays will enhance your elegant, cool contrast.",
+        "makeup_palette": {
+            "lip": ["#DA8A9F", "#C890A8", "#E0A0B8"],
+            "eye": ["#A8B0C0", "#9098A8", "#B0C0C8"],
+            "cheek": ["#E8B0C0", "#D0A0B0", "#F0C0D0"],
+            "nail": ["#E0A0B8", "#C8C8D8", "#A0B8C0"],
+        },
+        "hair_color_palette": ["#C8B8A0", "#B8A890", "#D8C8B0", "#A89880", "#E0D0C0"],
+        "colors_to_avoid": ["#FF4500", "#FF8C00", "#FFD700", "#FF6347", "#FFA500", "#8B4513", "#D2691E"],
+    },
+    "Cool Summer": {
+        "office": ["#9A7A8A", "#607080", "#5A7A7A"],
+        "party": ["#C87A9A", "#7A70B0", "#4070A0"],
+        "casual": ["#D090A8", "#B0B8D0", "#608090"],
+        "explanation_undertone": "cool rosy/pink — medium value",
+        "season_descr": "True cool undertones with a refined, elegant cast. Muted burgundy, steel gray, and dusty blue harmonise with your natural coolness.",
+        "makeup_palette": {
+            "lip": ["#C87A9A", "#B06888", "#D088A8"],
+            "eye": ["#808890", "#687080", "#A0A8B0"],
+            "cheek": ["#D090A8", "#C08098", "#E0A0B8"],
+            "nail": ["#C87A9A", "#8888B0", "#7098A8"],
+        },
+        "hair_color_palette": ["#A09080", "#8A7A6A", "#B8A898", "#7A6A5A", "#C8B8A8"],
+        "colors_to_avoid": ["#FF6633", "#FF9933", "#FFCC00", "#FF7043", "#FFA040", "#A0522D", "#CD853F"],
+    },
+    "Soft Summer": {
+        "office": ["#8A7A82", "#687878", "#6A7A7A"],
+        "party": ["#B07A8A", "#7A78A0", "#607890"],
+        "casual": ["#C08A98", "#A0A0B8", "#788888"],
+        "explanation_undertone": "cool rosy/pink — muted",
+        "season_descr": "Muted, gentle cool tones with a smoky quality. Dusty mauve, grayed teal, and soft heather suit your understated elegance.",
+        "makeup_palette": {
+            "lip": ["#B07A8A", "#9A6878", "#C08A98"],
+            "eye": ["#788080", "#686868", "#889090"],
+            "cheek": ["#C08A98", "#A87888", "#D098A8"],
+            "nail": ["#B07A8A", "#8888A0", "#789090"],
+        },
+        "hair_color_palette": ["#8A8278", "#7A7268", "#9A9288", "#6A6258", "#A8A098"],
+        "colors_to_avoid": ["#FF5500", "#FFAA00", "#FFCC33", "#FF7733", "#FFB347", "#B86500", "#D4872A"],
+    },
+    "Soft Autumn": {
+        "office": ["#8A5E38", "#7A8A5A", "#B8A07A"],
+        "party": ["#C07A50", "#9A8A30", "#5A8A5A"],
+        "casual": ["#C08A5A", "#A8A880", "#8AA08A"],
+        "explanation_undertone": "warm bronze/honey — muted",
+        "season_descr": "Earthy, muted warmth with olive undertones. Clay brown, sage green, and warm taupe frame your natural subtle glow.",
+        "makeup_palette": {
+            "lip": ["#C07A50", "#A86840", "#D08860"],
+            "eye": ["#8A7A60", "#7A6A50", "#9A8A70"],
+            "cheek": ["#C08A5A", "#A87848", "#D09868"],
+            "nail": ["#C07A50", "#9A8A50", "#7A9A7A"],
+        },
+        "hair_color_palette": ["#6A5040", "#5A4030", "#7A6050", "#4A3828", "#8A7060"],
+        "colors_to_avoid": ["#FF69B4", "#FFB6C1", "#FFC0CB", "#E6E6FA", "#DDA0DD", "#DA70D6", "#EE82EE"],
+    },
+    "Warm Autumn": {
+        "office": ["#8A5E38", "#556B2F", "#C2A67D"],
+        "party": ["#E05A47", "#B8860B", "#2E8B57"],
+        "casual": ["#D2691E", "#8FBC8F", "#F5F5DC"],
+        "explanation_undertone": "warm bronze/honey — medium saturation",
+        "season_descr": "You have rich golden undertones and deep features. Terracotta, mustard gold, and earthy olive greens complement your natural warmth perfectly.",
+        "makeup_palette": {
+            "lip": ["#E05A47", "#C84A38", "#D06848"],
+            "eye": ["#8A7050", "#7A6040", "#9A8060"],
+            "cheek": ["#D07A4A", "#C06838", "#D88858"],
+            "nail": ["#C85A38", "#B89030", "#4A8A4A"],
+        },
+        "hair_color_palette": ["#5A4030", "#4A3020", "#6A5040", "#3A2818", "#7A6050"],
+        "colors_to_avoid": ["#FF1493", "#FF69B4", "#DB7093", "#FFB6C1", "#FFC0CB", "#E6E6FA", "#DDA0DD"],
+    },
+    "Deep Autumn": {
+        "office": ["#6A4030", "#4A6030", "#9A8060"],
+        "party": ["#C84A30", "#8A7000", "#2A6A3A"],
+        "casual": ["#A85830", "#6A8A5A", "#C8B090"],
+        "explanation_undertone": "warm bronze/honey — deep value",
+        "season_descr": "Deep, rich warmth with strong golden undertones. Rust red, olive green, and warm chocolate bring out your dramatic depth.",
+        "makeup_palette": {
+            "lip": ["#C84A30", "#B03828", "#D05840"],
+            "eye": ["#6A5840", "#5A4830", "#7A6850"],
+            "cheek": ["#A85830", "#984828", "#B86840"],
+            "nail": ["#C84A30", "#7A6830", "#3A7A4A"],
+        },
+        "hair_color_palette": ["#3A2820", "#2A1A10", "#4A3830", "#1A1008", "#5A4840"],
+        "colors_to_avoid": ["#FFB6C1", "#FFC0CB", "#E6E6FA", "#D8BFD8", "#FFD700", "#00FFFF", "#FF00FF"],
+    },
+    "Deep Winter": {
+        "office": ["#1F3A60", "#0E5033", "#4A4A4A"],
+        "party": ["#3050C0", "#008050", "#A04060"],
+        "casual": ["#3A5880", "#206040", "#585858"],
+        "explanation_undertone": "cool high-contrast — deep value",
+        "season_descr": "Striking cool undertones with deep, rich colouring. Midnight blue, pine green, and charcoal create your powerful dark palette.",
+        "makeup_palette": {
+            "lip": ["#A04060", "#882850", "#B84870"],
+            "eye": ["#404860", "#383850", "#505870"],
+            "cheek": ["#804860", "#703850", "#905870"],
+            "nail": ["#A04060", "#3040A0", "#207050"],
+        },
+        "hair_color_palette": ["#1A1010", "#0A0808", "#2A2020", "#000000", "#3A3030"],
+        "colors_to_avoid": ["#FFD700", "#FFA500", "#FF8C00", "#FF6347", "#F4A460", "#CD853F", "#D2691E"],
+    },
+    "Cool Winter": {
+        "office": ["#2A4070", "#1A5A40", "#3A5080"],
+        "party": ["#4060D0", "#208058", "#B04870"],
+        "casual": ["#4A6A90", "#387050", "#606878"],
+        "explanation_undertone": "cool high-contrast — clear cool",
+        "season_descr": "True cool, clear colouring with icy clarity. Royal blue, emerald green, and vivid ruby red make you stand out beautifully.",
+        "makeup_palette": {
+            "lip": ["#B04870", "#983060", "#C05880"],
+            "eye": ["#506080", "#485070", "#607090"],
+            "cheek": ["#905870", "#804860", "#A06880"],
+            "nail": ["#B04870", "#4050B8", "#308068"],
+        },
+        "hair_color_palette": ["#2A2020", "#1A1010", "#3A3030", "#0A0808", "#4A4040"],
+        "colors_to_avoid": ["#FFD700", "#FFA500", "#FF8C00", "#F4A460", "#CD853F", "#D2691E", "#B8860B"],
+    },
+    "Bright Winter": {
+        "office": ["#2A4890", "#206848", "#4A5A80"],
+        "party": ["#3058E0", "#009868", "#C85080"],
+        "casual": ["#5078A8", "#489070", "#687090"],
+        "explanation_undertone": "cool high-contrast — bright/chromatic",
+        "season_descr": "Cool, brilliant colouring with dramatic contrast. Electric blue, vivid emerald, and hot pink match your bold, icy presence.",
+        "makeup_palette": {
+            "lip": ["#C85080", "#B03868", "#D86090"],
+            "eye": ["#607898", "#586888", "#7088A8"],
+            "cheek": ["#A06880", "#905870", "#B07890"],
+            "nail": ["#C85080", "#3860D0", "#28A078"],
+        },
+        "hair_color_palette": ["#1A1018", "#0A0808", "#2A2030", "#181020", "#3A3040"],
+        "colors_to_avoid": ["#FFD700", "#FFA500", "#FF8C00", "#CD853F", "#D2691E", "#B8860B", "#8B4513"],
+    },
+}
+
+SEASON_PALETTES_4 = dict(SEASON_PALETTES)  # alias
+# Ensure 4-season keys exist for synergy fallback
+for base in ["Spring", "Summer", "Autumn", "Winter"]:
+    if base not in SEASON_PALETTES:
+        SEASON_PALETTES[base] = FOUR_SEASON_PALETTES[base]
+
+SKIN_TONE_LABELS_12 = {
+    "Light Spring": "Light Spring — Warm Golden/Peach (Light)",
+    "Warm Spring": "Warm Spring — Warm Golden/Peach (True Warm)",
+    "Bright Spring": "Bright Spring — Warm Golden/Peach (Bright)",
+    "Light Summer": "Light Summer — Cool Rosy/Pink (Light)",
+    "Cool Summer": "Cool Summer — Cool Rosy/Pink (True Cool)",
+    "Soft Summer": "Soft Summer — Cool Rosy/Pink (Soft)",
+    "Soft Autumn": "Soft Autumn — Warm Bronze/Honey (Soft)",
+    "Warm Autumn": "Warm Autumn — Warm Bronze/Honey (True Warm)",
+    "Deep Autumn": "Deep Autumn — Warm Bronze/Honey (Deep)",
+    "Deep Winter": "Deep Winter — Cool High-Contrast (Deep)",
+    "Cool Winter": "Cool Winter — Cool High-Contrast (True Cool)",
+    "Bright Winter": "Bright Winter — Cool High-Contrast (Bright)",
 }
 
 
@@ -353,10 +665,101 @@ def _adjust_for_skin_tone(hex_color: str, l_val: float) -> str:
     return rgb_to_hex((r * 255, g * 255, b * 255))
 
 
+def _lab_from_hex(hex_code: str) -> tuple[float, float, float]:
+    """Convert a hex colour string to CIE L*a*b* tuple."""
+    r, g, b = hex_to_rgb(hex_code)
+    bgr_pixel = np.uint8([[[b, g, r]]])
+    lab = cv2.cvtColor(bgr_pixel, cv2.COLOR_BGR2LAB)[0][0]
+    return (float(lab[0]), float(lab[1]), float(lab[2]))
+
+
+def _compute_subseason_distances(
+    skin_lab: tuple[float, float, float],
+    hair_lab: tuple[float, float, float] | None,
+    eye_lab: tuple[float, float, float] | None,
+) -> tuple[str, dict[str, float]]:
+    """Compute weighted Delta‑E distances to each of the 12 sub‑seasons.
+    Weights: skin 0.60, hair 0.25, eye 0.15.
+    Returns (best_subseason, {subseason: weighted_distance}).
+    """
+    weights = {
+        "skin": 0.60,
+        "hair": 0.25,
+        "eye": 0.15,
+    }
+    has_hair = hair_lab is not None
+    has_eye = eye_lab is not None
+
+    if not has_hair and not has_eye:
+        w_skin = 1.0
+    elif not has_hair:
+        w_skin = weights["skin"] / (weights["skin"] + weights["eye"])
+    elif not has_eye:
+        w_skin = weights["skin"] / (weights["skin"] + weights["hair"])
+    else:
+        w_skin = weights["skin"]
+
+    weighted = {}
+    for subseason, anchors in SEASON_ANCHORS_RGB.items():
+        min_skin = float("inf")
+        min_hair = float("inf")
+        min_eye = float("inf")
+
+        for r, g, b in anchors:
+            anchor_bgr = np.uint8([[[b, g, r]]])
+            anchor_lab_vec = cv2.cvtColor(anchor_bgr, cv2.COLOR_BGR2LAB)[0][0]
+            anchor_lab = (
+                float(anchor_lab_vec[0]),
+                float(anchor_lab_vec[1]),
+                float(anchor_lab_vec[2]),
+            )
+            d = delta_e_2000(skin_lab, anchor_lab)
+            if d < min_skin:
+                min_skin = d
+
+        if has_hair:
+            for r, g, b in anchors:
+                anchor_bgr = np.uint8([[[b, g, r]]])
+                anchor_lab_vec = cv2.cvtColor(anchor_bgr, cv2.COLOR_BGR2LAB)[0][0]
+                anchor_lab = (
+                    float(anchor_lab_vec[0]),
+                    float(anchor_lab_vec[1]),
+                    float(anchor_lab_vec[2]),
+                )
+                d = delta_e_2000(hair_lab, anchor_lab)
+                if d < min_hair:
+                    min_hair = d
+
+        if has_eye:
+            for r, g, b in anchors:
+                anchor_bgr = np.uint8([[[b, g, r]]])
+                anchor_lab_vec = cv2.cvtColor(anchor_bgr, cv2.COLOR_BGR2LAB)[0][0]
+                anchor_lab = (
+                    float(anchor_lab_vec[0]),
+                    float(anchor_lab_vec[1]),
+                    float(anchor_lab_vec[2]),
+                )
+                d = delta_e_2000(eye_lab, anchor_lab)
+                if d < min_eye:
+                    min_eye = d
+
+        total = w_skin * min_skin
+        if has_hair:
+            total += weights["hair"] * min_hair
+        if has_eye:
+            total += weights["eye"] * min_eye
+        weighted[subseason] = total
+
+    best = min(weighted, key=weighted.get)
+    return best, weighted
+
+
 def process_selfie(
     base64_image: str,
     gender: str = "neutral",
     face_already_cropped: bool = False,
+    hair_color: str | None = None,
+    eye_color: str | None = None,
 ) -> dict:
     try:
         if base64_image.startswith("data:image"):
@@ -445,28 +848,29 @@ def process_selfie(
         a_val = float(skin_lab_pixel[1])
         b_val = float(skin_lab_pixel[2])
 
-        # --- SEASONAL CLASSIFICATION via CIEDE2000 ---
+        # --- 12-SEASON CLASSIFICATION via CIEDE2000 (weighted) ---
         skin_lab = (l_val, a_val, b_val)
-        distances = {}
-        for season, anchors in SEASON_ANCHORS_RGB.items():
-            min_dist = float('inf')
-            for r, g, bv in anchors:
-                anchor_bgr = np.uint8([[[bv, g, r]]])
-                anchor_lab_vec = cv2.cvtColor(anchor_bgr, cv2.COLOR_BGR2LAB)[0][0]
-                anchor_lab = (
-                    float(anchor_lab_vec[0]),
-                    float(anchor_lab_vec[1]),
-                    float(anchor_lab_vec[2]),
-                )
-                dist = delta_e_2000(skin_lab, anchor_lab)
-                if dist < min_dist:
-                    min_dist = dist
-            distances[season] = min_dist
 
-        detected_season = min(distances, key=distances.get)
+        hair_lab = None
+        if hair_color:
+            try:
+                hair_lab = _lab_from_hex(hair_color)
+            except Exception:
+                hair_lab = None
+
+        eye_lab = None
+        if eye_color:
+            try:
+                eye_lab = _lab_from_hex(eye_color)
+            except Exception:
+                eye_lab = None
+
+        best_subseason, weighted_dists = _compute_subseason_distances(skin_lab, hair_lab, eye_lab)
+        detected_season = best_subseason
+        base_season = SUBBASE_MAP.get(detected_season, detected_season)
 
         gamma = 0.04
-        similarities = {s: np.exp(-gamma * d) for s, d in distances.items()}
+        similarities = {s: np.exp(-gamma * d) for s, d in weighted_dists.items()}
         sum_sim = sum(similarities.values())
         confidences = {s: int(round((sim / sum_sim) * 100)) for s, sim in similarities.items()}
         confidence = confidences[detected_season]
@@ -480,9 +884,9 @@ def process_selfie(
         else:
             lightness_descr = "deep/rich"
 
-        palette = SEASON_PALETTES[detected_season]
-        undertone = palette["explanation_undertone"]
-        season_descr = palette["season_descr"]
+        palette = SEASON_PALETTES.get(detected_season, FOUR_SEASON_PALETTES.get(base_season, {}))
+        undertone = palette.get("explanation_undertone", "balanced")
+        season_descr = palette.get("season_descr", "")
         explanation = (
             f"We detected {undertone} undertones and a {lightness_descr} skin level. "
             f"This places you in the {detected_season} seasonal color family. {season_descr}"
@@ -498,18 +902,33 @@ def process_selfie(
                 "message": _get_gendered_stylist_tip(detected_season, occ, gender),
             }
 
-        skin_tone_labels = {
-            "Spring": "Warm Golden/Peach Skin Tone",
-            "Summer": "Cool Rosy/Pink Skin Tone",
-            "Autumn": "Warm Bronze/Honey Skin Tone",
-            "Winter": "Cool High-Contrast Skin Tone",
-        }
+        # --- Makeup palette ---
+        makeup = palette.get("makeup_palette", {})
+        makeup_out = {}
+        for mtype in ["lip", "eye", "cheek", "nail"]:
+            colors = makeup.get(mtype, [])
+            makeup_out[mtype] = [_adjust_for_skin_tone(c, l_val) for c in colors]
+
+        # --- Hair color palette ---
+        hair_pal = palette.get("hair_color_palette", [])
+        hair_out = [_adjust_for_skin_tone(c, l_val) for c in hair_pal]
+
+        # --- Colors to avoid ---
+        avoid = palette.get("colors_to_avoid", [])
+
+        # --- Skin tone labels (12-subseason aware) ---
+        detected_label = SKIN_TONE_LABELS_12.get(detected_season, f"{detected_season} Season")
 
         return {
-            "detected_category": skin_tone_labels.get(detected_season, f"{detected_season} Season"),
+            "detected_category": detected_label,
+            "detected_subseason": detected_season,
+            "base_season": base_season,
             "confidence": confidence,
             "explanation": explanation,
             "palettes": palettes_out,
+            "makeup_palette": makeup_out,
+            "hair_color_palette": hair_out,
+            "colors_to_avoid": avoid,
         }
 
     except ValueError as e:

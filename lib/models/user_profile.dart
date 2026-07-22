@@ -8,6 +8,8 @@ class UserProfile {
   final String? customSecondaryColor;
   final String? suggestedTheme;
   final bool themeSuggestionDismissed;
+  final String? hairColor;
+  final String? eyeColor;
 
   UserProfile({
     required this.gender,
@@ -19,6 +21,8 @@ class UserProfile {
     this.customSecondaryColor,
     this.suggestedTheme,
     this.themeSuggestionDismissed = false,
+    this.hairColor,
+    this.eyeColor,
   });
 
   Map<String, dynamic> toJson() => {
@@ -31,6 +35,8 @@ class UserProfile {
         'customSecondaryColor': customSecondaryColor,
         'suggestedTheme': suggestedTheme,
         'themeSuggestionDismissed': themeSuggestionDismissed,
+        'hairColor': hairColor,
+        'eyeColor': eyeColor,
       };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -45,6 +51,8 @@ class UserProfile {
       suggestedTheme: json['suggestedTheme'] as String?,
       themeSuggestionDismissed:
           json['themeSuggestionDismissed'] as bool? ?? false,
+      hairColor: json['hairColor'] as String?,
+      eyeColor: json['eyeColor'] as String?,
     );
   }
 
@@ -68,6 +76,8 @@ class UserProfile {
     String? customSecondaryColor,
     String? suggestedTheme,
     bool? themeSuggestionDismissed,
+    String? hairColor,
+    String? eyeColor,
   }) {
     return UserProfile(
       gender: gender ?? this.gender,
@@ -80,6 +90,8 @@ class UserProfile {
       suggestedTheme: suggestedTheme ?? this.suggestedTheme,
       themeSuggestionDismissed:
           themeSuggestionDismissed ?? this.themeSuggestionDismissed,
+      hairColor: hairColor ?? this.hairColor,
+      eyeColor: eyeColor ?? this.eyeColor,
     );
   }
 }

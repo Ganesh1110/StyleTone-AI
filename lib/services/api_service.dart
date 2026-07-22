@@ -44,6 +44,8 @@ class ApiService {
         'occasion': occasion,
         'gender': profile.gender,
         'face_already_cropped': true,
+        if (profile.hairColor != null) 'hair_color': profile.hairColor,
+        if (profile.eyeColor != null) 'eye_color': profile.eyeColor,
       };
 
       // 5. Send POST request

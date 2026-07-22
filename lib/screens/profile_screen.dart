@@ -24,6 +24,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _themeName = 'default';
   String? _customPrimaryColor;
   String? _customSecondaryColor;
+  String? _hairColor;
+  String? _eyeColor;
 
   static const List<Color> _presetPrimaryColors = [
     Color(0xFF8B5CF6),
@@ -62,6 +64,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
     'Charcoal',
     'Magenta',
     'Navy',
+  ];
+
+  // Hair colour presets
+  static const List<Color> _hairPresetColors = [
+    Color(0xFF1A1010),  // Jet Black
+    Color(0xFF3A2820),  // Dark Brown
+    Color(0xFF5A4030),  // Medium Brown
+    Color(0xFF8A6840),  // Light Brown
+    Color(0xFFC4A060),  // Blonde
+    Color(0xFFE8D5A0),  // Light Blonde
+    Color(0xFFA04030),  // Auburn
+    Color(0xFF8A3020),  // Red
+    Color(0xFF6A4850),  // Dark Auburn
+    Color(0xFFD0C0B0),  // Grey/Silver
+  ];
+
+  static const List<String> _hairPresetHexes = [
+    '#1A1010', '#3A2820', '#5A4030', '#8A6840', '#C4A060',
+    '#E8D5A0', '#A04030', '#8A3020', '#6A4850', '#D0C0B0',
+  ];
+
+  static const List<String> _hairPresetLabels = [
+    'Jet Black', 'Dark Brown', 'Med. Brown', 'Light Brown', 'Blonde',
+    'Light Blonde', 'Auburn', 'Red', 'Dark Auburn', 'Grey/Silver',
+  ];
+
+  // Eye colour presets
+  static const List<Color> _eyePresetColors = [
+    Color(0xFF3A2818),  // Dark Brown
+    Color(0xFF6A4828),  // Hazel
+    Color(0xFF4A7A28),  // Green
+    Color(0xFF3870B0),  // Blue
+    Color(0xFF7090B8),  // Light Blue
+    Color(0xFF687050),  // Grey
+    Color(0xFF8A6830),  // Amber
+    Color(0xFF5A4830),  // Brown
+    Color(0xFF4880A0),  // Teal
+    Color(0xFF808080),  // Grey-Blue
+  ];
+
+  static const List<String> _eyePresetHexes = [
+    '#3A2818', '#6A4828', '#4A7A28', '#3870B0', '#7090B8',
+    '#687050', '#8A6830', '#5A4830', '#4880A0', '#808080',
+  ];
+
+  static const List<String> _eyePresetLabels = [
+    'Dark Brown', 'Hazel', 'Green', 'Blue', 'Light Blue',
+    'Grey', 'Amber', 'Brown', 'Teal', 'Grey-Blue',
   ];
 
   static const List<Color> _presetSecondaryColors = [
@@ -119,6 +169,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _themeName = profile.themeName;
       _customPrimaryColor = profile.customPrimaryColor;
       _customSecondaryColor = profile.customSecondaryColor;
+      _hairColor = profile.hairColor;
+      _eyeColor = profile.eyeColor;
       _isLoading = false;
     });
   }
@@ -132,6 +184,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       themeName: _themeName,
       customPrimaryColor: _customPrimaryColor,
       customSecondaryColor: _customSecondaryColor,
+      hairColor: _hairColor,
+      eyeColor: _eyeColor,
     );
     await _profileService.saveProfile(updatedProfile);
     await ThemeService.loadTheme();
@@ -296,6 +350,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildSectionTitle('THEME'),
                   const SizedBox(height: 8),
                   _buildThemeSection(cs, theme),
+                  const SizedBox(height: 24),
+
+                  _buildSectionTitle('HAIR & EYE COLOR'),
+                  const SizedBox(height: 8),
+                  GlassCard(
+                    color: theme.brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.black.withValues(alpha: 0.03),
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hair Color',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _buildHairEyeColorPicker('hair'),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Eye Color',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _buildHairEyeColorPicker('eye'),
+                        const SizedBox(height: 8),
+                        Text(
+                          'These help the AI fine-tune your 12-season classification.',
+                          style: TextStyle(fontSize: 11, color: textSecondary.withValues(alpha: 0.7)),
+                        ),
+                      ],
+                    ),
+                  ).animate().fadeIn(duration: 400.ms, delay: 250.ms).slideY(begin: 0.1, end: 0, duration: 400.ms),
                   const SizedBox(height: 24),
 
                   _buildSectionTitle('APP SETTINGS'),
@@ -772,6 +867,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     fontWeight: isSelected
                         ? FontWeight.bold
                         : FontWeight.normal,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildHairEyeColorPicker(String type) {
+    final colors = type == 'hair' ? _hairPresetColors : _eyePresetColors;
+    final hexes = type == 'hair' ? _hairPresetHexes : _eyePresetHexes;
+    final labels = type == 'hair' ? _hairPresetLabels : _eyePresetLabels;
+    final currentHex = type == 'hair' ? _hairColor : _eyeColor;
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: List.generate(colors.length, (i) {
+        final color = colors[i];
+        final hex = hexes[i];
+        final label = labels[i];
+        final isSelected = currentHex == hex;
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              if (type == 'hair') {
+                _hairColor = isSelected ? null : hex;
+              } else {
+                _eyeColor = isSelected ? null : hex;
+              }
+            });
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected ? Colors.white : Colors.white24,
+                    width: isSelected ? 2.5 : 1,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: color.withValues(alpha: 0.6),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          ),
+                        ]
+                      : null,
+                ),
+              ),
+              const SizedBox(height: 3),
+              SizedBox(
+                width: 48,
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 8,
+                    color: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.white60,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
