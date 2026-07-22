@@ -11,6 +11,7 @@ import 'outfit_combinator_screen.dart';
 import 'live_matcher_screen.dart';
 import 'trip_mode_screen.dart';
 import 'style_timeline_screen.dart';
+import 'link_scan_screen.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../widgets/glass_card.dart';
 
@@ -196,6 +197,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       label: 'Style\nTimeline',
                       color: Colors.teal,
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StyleTimelineScreen())),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _MiniFeatureCard(
+                      icon: Icons.link,
+                      label: 'Shop Link\nScanner',
+                      color: Colors.amber,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LinkScanScreen())),
                     ),
                   ),
                 ],

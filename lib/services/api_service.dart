@@ -158,6 +158,52 @@ class ApiService {
     }
   }
 
+  /// Scrape a shopping/product page for its main image, then score that
+  /// garment's color against the user's active season and existing closet —
+  /// same synergy pipeline as analyzeGarmentSynergy, but from a URL instead
+  /// of a photo.
+  Future<Map<String, dynamic>> analyzeDressUrl({
+    required String url,
+    required String activeSeason,
+    required List<ClosetItem> closetItems,
+  }) async {
+    try {
+      final payload = {
+        'url': url,
+        'season': activeSeason,
+        'closet_items': closetItems
+            .map((item) => {
+                  'category': item.category,
+                  'hex_color': item.hexColor,
+                  'color_name': item.colorName,
+                })
+            .toList(),
+      };
+
+      final response = await _dio.post('/scrape-dress', data: payload);
+
+      if (response.statusCode == 200 && response.data is Map) {
+        final data = Map<String, dynamic>.from(response.data);
+        if (data['error'] != null) {
+          throw Exception(data['error']);
+        }
+        return data;
+      } else {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.badResponse && e.response?.data != null) {
+        final detail = e.response!.data is Map
+            ? (e.response!.data['detail'] ?? 'Server error (${e.response!.statusCode})')
+            : 'Server error (${e.response!.statusCode})';
+        throw Exception(detail);
+      }
+      throw Exception('Network error. Please check your connection and try again.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   // Helper to resize image using the 'image' package
   Future<File> _resizeImage(File file, int maxSize) async {
     try {

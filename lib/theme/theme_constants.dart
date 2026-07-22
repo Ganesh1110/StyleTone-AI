@@ -88,6 +88,18 @@ class ThemeConstants {
       textSecondary: Color(0xFFA89CC0),
       description: 'Gold & burgundy opulence',
     ),
+    'porcelain_light': ThemeConfig(
+      id: 'porcelain_light',
+      label: 'Porcelain Light',
+      primary: Color(0xFF7C6FE4),
+      secondary: Color(0xFFE8A0BF),
+      background: Color(0xFFF5F0EB),
+      surface: Color(0xFFFFFFFF),
+      brightness: Brightness.light,
+      textPrimary: Color(0xFF1A1423),
+      textSecondary: Color(0xFF6B5E7B),
+      description: 'Clean light canvas for true color perception',
+    ),
   };
 
   static const List<String> themeOrder = [
@@ -96,6 +108,7 @@ class ThemeConstants {
     'sorbet_pastel',
     'terracotta_earth',
     'royal_luxe',
+    'porcelain_light',
   ];
 
   static List<ThemeConfig> get orderedThemes =>

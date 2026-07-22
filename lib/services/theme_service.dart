@@ -28,12 +28,12 @@ class ThemeService {
     );
   }
 
-  static Future<void> applyTheme(String themeName) async {
+  static Future<void> applyTheme(String themeName, {String? customPrimaryColor, String? customSecondaryColor}) async {
     final profile = await ProfileService().getProfile();
     final updated = profile.copyWith(
       themeName: themeName,
-      customPrimaryColor: null,
-      customSecondaryColor: null,
+      customPrimaryColor: customPrimaryColor,
+      customSecondaryColor: customSecondaryColor,
     );
     await ProfileService().saveProfile(updated);
     await loadTheme();

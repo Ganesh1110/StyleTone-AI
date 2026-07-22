@@ -564,6 +564,7 @@ class _ResultScreenState extends State<ResultScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (rec.confidence < 70) _buildRetakePrompt(rec),
         _buildHeaderSection(rec),
         const SizedBox(height: 16),
         _buildThemeSuggestion(rec),
@@ -584,35 +585,53 @@ class _ResultScreenState extends State<ResultScreen>
     );
   }
 
-  String _extractBaseSeason(String detectedCategory) {
-    final lower = detectedCategory.toLowerCase();
-    if (lower.contains('spring') ||
-        lower.contains('golden') ||
-        lower.contains('peach'))
-      return 'spring';
-    if (lower.contains('summer') ||
-        lower.contains('rosy') ||
-        lower.contains('pink'))
-      return 'summer';
-    if (lower.contains('autumn') ||
-        lower.contains('bronze') ||
-        lower.contains('honey'))
-      return 'autumn';
-    if (lower.contains('winter') || lower.contains('high-contrast'))
-      return 'winter';
-    return '';
+  Widget _buildRetakePrompt(ColorRecommendation rec) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassCard(
+        margin: EdgeInsets.zero,
+        color: Colors.orange.withValues(alpha: 0.08),
+        padding: const EdgeInsets.all(12),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+        child: Row(
+          children: [
+            Icon(Icons.wb_sunny_outlined, color: Colors.orange, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Confidence is ${rec.confidence}%. Try better lighting and a retake for more accurate results.',
+                style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.3),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(duration: 300.ms);
   }
 
   Widget _buildThemeSuggestion(ColorRecommendation rec) {
-    final season = _extractBaseSeason(rec.detectedCategory);
+    final season = rec.baseSeason?.toLowerCase() ?? '';
     if (season.isEmpty) return const SizedBox.shrink();
 
     final themeId = ThemeConstants.themeForSeason(season);
     if (themeId == null) return const SizedBox.shrink();
 
     final themeConfig = ThemeConstants.getTheme(themeId);
+
+    // Subseason-aware accent color: use the casual palette primary for personalization
+    Color? subseasonAccent;
+    String? subseasonLabel;
+    if (rec.detectedSubseason != null) {
+      subseasonLabel = rec.detectedSubseason;
+      final primaryHex = rec.palettes['casual']?.primaryColor;
+      if (primaryHex != null) {
+        try {
+          subseasonAccent = Color(int.parse(primaryHex.replaceFirst('#', '0xFF')));
+        } catch (_) {}
+      }
+    }
+
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
 
     return FutureBuilder<UserProfile>(
       future: ProfileService().getProfile(),
@@ -620,6 +639,10 @@ class _ResultScreenState extends State<ResultScreen>
         if (snapshot.data?.themeSuggestionDismissed == true) {
           return const SizedBox.shrink();
         }
+
+        final gradientColors = subseasonAccent != null
+            ? [subseasonAccent, themeConfig.secondary]
+            : [themeConfig.primary, themeConfig.secondary];
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
@@ -640,7 +663,7 @@ class _ResultScreenState extends State<ResultScreen>
                       height: 28,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [themeConfig.primary, themeConfig.secondary],
+                          colors: gradientColors,
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -681,7 +704,9 @@ class _ResultScreenState extends State<ResultScreen>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${season.substring(0, 1).toUpperCase()}${season.substring(1)} — ${themeConfig.description}',
+                  subseasonLabel != null
+                      ? '$subseasonLabel — ${themeConfig.description}'
+                      : '${season.substring(0, 1).toUpperCase()}${season.substring(1)} — ${themeConfig.description}',
                   style: TextStyle(
                     fontSize: 12,
                     color: theme.textTheme.bodyMedium?.color ?? Colors.white60,
@@ -692,7 +717,12 @@ class _ResultScreenState extends State<ResultScreen>
                   width: double.infinity,
                   child: TextButton(
                     onPressed: () async {
-                      await ThemeService.applyTheme(themeId);
+                      await ThemeService.applyTheme(
+                        themeId,
+                        customPrimaryColor: subseasonAccent != null
+                            ? '#${subseasonAccent.toARGB32().toRadixString(16).substring(2).toUpperCase().padLeft(6, '0')}'
+                            : null,
+                      );
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -705,10 +735,10 @@ class _ResultScreenState extends State<ResultScreen>
                       }
                     },
                     style: TextButton.styleFrom(
-                      backgroundColor: themeConfig.primary.withValues(
+                      backgroundColor: (subseasonAccent ?? themeConfig.primary).withValues(
                         alpha: 0.15,
                       ),
-                      foregroundColor: themeConfig.primary,
+                      foregroundColor: subseasonAccent ?? themeConfig.primary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),

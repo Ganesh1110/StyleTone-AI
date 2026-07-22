@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from image_processor import (
     compute_synergy,
     decode_base64_image,
+    decode_image_bytes,
     extract_dominant_color,
     process_selfie,
 )
@@ -33,6 +34,7 @@ app.add_middleware(
 )
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
+MAX_SCRAPE_IMAGE_BYTES = 8 * 1024 * 1024
 VALID_GENDERS = {"male", "female", "neutral"}
 VALID_OCCASIONS = {"office", "party", "casual"}
 
@@ -48,7 +50,8 @@ class ImageRequest(BaseModel):
 
 class DressUrlRequest(BaseModel):
     url: str
-    occasion: str
+    season: str = "Spring Season"
+    closet_items: List[Dict[str, Any]] = []
 
 
 class ClothingRequest(BaseModel):
@@ -129,13 +132,14 @@ async def analyze_dress(request: DressUrlRequest):
             detail="Invalid or unsafe URL. Only public HTTPS URLs are allowed.",
         )
 
+    headers = {
+        'User-Agent': (
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+            'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        )
+    }
+
     try:
-        headers = {
-            'User-Agent': (
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            )
-        }
         response = requests.get(request.url, headers=headers, timeout=10)
         if response.status_code != 200:
             return {"error": "Could not fetch the webpage."}
@@ -145,17 +149,37 @@ async def analyze_dress(request: DressUrlRequest):
             soup.find('img', {'class': re.compile(r'product|main|hero', re.I)})
             or soup.find('img')
         )
-
-        if img_tag and img_tag.get('src'):
-            img_url = img_tag['src']
-            if not img_url.startswith('http'):
-                img_url = requests.compat.urljoin(request.url, img_url)
-            return {
-                "dress_image_url": img_url,
-                "message": "Dress found! This color palette would look great on you.",
-            }
-        else:
+        if not (img_tag and img_tag.get('src')):
             return {"error": "Could not find a product image on this page."}
+
+        img_url = img_tag['src']
+        if not img_url.startswith('http'):
+            img_url = requests.compat.urljoin(request.url, img_url)
+
+        if not _is_safe_url(img_url):
+            return {"error": "Product image URL failed the safety check."}
+
+        img_response = requests.get(img_url, headers=headers, timeout=10)
+        if img_response.status_code != 200:
+            return {"dress_image_url": img_url, "error": "Could not download the product image."}
+        if len(img_response.content) > MAX_SCRAPE_IMAGE_BYTES:
+            return {"dress_image_url": img_url, "error": "Product image is too large to analyze."}
+
+        cv_img = decode_image_bytes(img_response.content)
+        if cv_img is None:
+            return {"dress_image_url": img_url, "error": "Could not decode the product image."}
+
+        dominant = extract_dominant_color(cv_img)
+        synergy = compute_synergy(dominant["hex_color"], request.season, request.closet_items)
+        synergy["new_item_color_name"] = dominant["color_name"]
+
+        return {
+            "dress_image_url": img_url,
+            "color_hex": dominant["hex_color"],
+            "color_name": dominant["color_name"],
+            **synergy,
+        }
+
     except requests.Timeout:
         return {"error": "Request timed out. Please try a different URL."}
     except Exception as e:

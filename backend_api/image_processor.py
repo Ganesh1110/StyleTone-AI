@@ -127,6 +127,13 @@ def decode_base64_image(b64_string: str) -> np.ndarray | None:
     return img
 
 
+def decode_image_bytes(content: bytes) -> np.ndarray | None:
+    """Decode raw image bytes (e.g. downloaded from a scraped URL) into an OpenCV BGR array."""
+    np_arr = np.frombuffer(content, np.uint8)
+    img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+    return img
+
+
 def extract_dominant_color(img: np.ndarray) -> dict:
     """Extract the dominant non-white/non-black colour from an image via centre-crop K-Means.
 
