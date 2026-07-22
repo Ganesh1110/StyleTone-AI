@@ -1,7 +1,7 @@
 name: style_tone_ai
 description: "StyleTone AI - AI-powered style and tone analyzer"
 publish_to: "none"
-version: 4.1.0+5
+version: 4.2.0+6
 
 environment:
   sdk: ^3.10.8
