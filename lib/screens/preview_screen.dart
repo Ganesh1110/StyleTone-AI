@@ -121,6 +121,23 @@ class _PreviewScreenState extends State<PreviewScreen>
       }
       final contrast = maxBright - minBright;
 
+      // Color cast detection
+      double avgR = 0, avgG = 0, avgB = 0;
+      for (int y = 0; y < sampled.height; y++) {
+        for (int x = 0; x < sampled.width; x++) {
+          final pixel = sampled.getPixel(x, y);
+          avgR += pixel.r.toInt();
+          avgG += pixel.g.toInt();
+          avgB += pixel.b.toInt();
+        }
+      }
+      avgR /= pixelCount;
+      avgG /= pixelCount;
+      avgB /= pixelCount;
+      final maxAvg = [avgR, avgG, avgB].reduce((a, b) => a > b ? a : b);
+      final minAvg = [avgR, avgG, avgB].reduce((a, b) => a < b ? a : b);
+      final castRatio = maxAvg / minAvg.clamp(1, 255);
+
       // Evaluate quality
       if (!faceDetected) {
         _updateQuality(
@@ -135,6 +152,8 @@ class _PreviewScreenState extends State<PreviewScreen>
         _updateQuality(false, 'Image is overexposed — reduce brightness', Icons.brightness_high, Colors.orange);
       } else if (contrast < 30) {
         _updateQuality(false, 'Low contrast — try more even lighting', Icons.contrast, Colors.orange);
+      } else if (castRatio > 1.4) {
+        _updateQuality(false, 'Warm color cast detected — results may shift', Icons.color_lens, Colors.orange);
       } else {
         _updateQuality(true, 'Good lighting and clear face!', Icons.check_circle, Colors.green);
       }
@@ -154,35 +173,71 @@ class _PreviewScreenState extends State<PreviewScreen>
     _animController.forward();
   }
 
-  Future<void> _proceedToResult() async {
-    File imageFile = widget.imageFile;
-
-    // Crop to face region if detected (more reliable than backend Haar cascade)
-    if (_faceRect != null) {
-      try {
-        final bytes = await imageFile.readAsBytes();
-        final decoded = img.decodeImage(bytes);
-        if (decoded != null) {
-          final r = _faceRect!;
-          final padX = (r.width * 0.3).toInt();
-          final padY = (r.height * 0.3).toInt();
-          int x = (r.left - padX).clamp(0, decoded.width - 1).toInt();
-          int y = (r.top - padY).clamp(0, decoded.height - 1).toInt();
-          int w = (r.width + padX * 2).clamp(1, decoded.width - x).toInt();
-          int h = (r.height + padY * 2).clamp(1, decoded.height - y).toInt();
-
-          final cropped = img.copyCrop(decoded, x: x, y: y, width: w, height: h);
-          final croppedBytes = img.encodeJpg(cropped, quality: 90);
-
-          final tempDir = await getTemporaryDirectory();
-          final croppedFile = File('${tempDir.path}/face_crop.jpg');
-          await croppedFile.writeAsBytes(croppedBytes);
-          imageFile = croppedFile;
-        }
-      } catch (e) {
-        debugPrint('Face crop failed, using original: $e');
+  img.Image _applyAutoWhiteBalance(img.Image image) {
+    int sumR = 0, sumG = 0, sumB = 0, count = 0;
+    final sampled = img.copyResize(image, width: 100);
+    for (int y = 0; y < sampled.height; y++) {
+      for (int x = 0; x < sampled.width; x++) {
+        final p = sampled.getPixel(x, y);
+        sumR += p.r.toInt();
+        sumG += p.g.toInt();
+        sumB += p.b.toInt();
+        count++;
       }
     }
+    final avgR = sumR / count;
+    final avgG = sumG / count;
+    final avgB = sumB / count;
+    final target = (avgR + avgG + avgB) / 3;
+    final scaleR = target / avgR;
+    final scaleG = target / avgG;
+    final scaleB = target / avgB;
+
+    final corrected = img.Image(width: image.width, height: image.height);
+    for (int y = 0; y < image.height; y++) {
+      for (int x = 0; x < image.width; x++) {
+        final p = image.getPixel(x, y);
+        corrected.setPixelRgba(
+          x, y,
+          (p.r.toInt() * scaleR).round().clamp(0, 255),
+          (p.g.toInt() * scaleG).round().clamp(0, 255),
+          (p.b.toInt() * scaleB).round().clamp(0, 255),
+          255,
+        );
+      }
+    }
+    return corrected;
+  }
+
+  Future<void> _proceedToResult() async {
+    File imageFile = widget.imageFile;
+    final bytes = await imageFile.readAsBytes();
+    final decoded = img.decodeImage(bytes);
+    if (decoded == null) return;
+
+    img.Image working = _applyAutoWhiteBalance(decoded);
+
+    if (_faceRect != null) {
+      try {
+        final r = _faceRect!;
+        final padX = (r.width * 0.3).toInt();
+        final padY = (r.height * 0.3).toInt();
+        int x = (r.left - padX).clamp(0, working.width - 1).toInt();
+        int y = (r.top - padY).clamp(0, working.height - 1).toInt();
+        int w = (r.width + padX * 2).clamp(1, working.width - x).toInt();
+        int h = (r.height + padY * 2).clamp(1, working.height - y).toInt();
+
+        working = img.copyCrop(working, x: x, y: y, width: w, height: h);
+      } catch (e) {
+        debugPrint('Face crop failed, using wb corrected: $e');
+      }
+    }
+
+    final outBytes = img.encodeJpg(working, quality: 90);
+    final tempDir = await getTemporaryDirectory();
+    final processedFile = File('${tempDir.path}/processed.jpg');
+    await processedFile.writeAsBytes(outBytes);
+    imageFile = processedFile;
 
     if (!mounted) return;
     Navigator.pushReplacement(
