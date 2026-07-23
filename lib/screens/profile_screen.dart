@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
+import 'package:google_mlkit_selfie_segmentation/google_mlkit_selfie_segmentation.dart';
 import '../models/user_profile.dart';
 import '../services/profile_service.dart';
 import '../widgets/glass_card.dart';
@@ -1048,6 +1049,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<Uint8List?> _applySelfieMask(img.Image image) async {
+    try {
+      final segmenter = SelfieSegmenter(mode: SegmenterMode.single);
+      final inputImage = InputImage.fromFilePath(
+        (await _saveTempImage(image)).path,
+      );
+      final mask = await segmenter.processImage(inputImage);
+      await segmenter.close();
+      if (mask == null) return null;
+
+      final masked = img.Image(width: image.width, height: image.height);
+      for (int y = 0; y < image.height; y++) {
+        for (int x = 0; x < image.width; x++) {
+          final maskIdx = y * mask.width + x;
+          final confidence = maskIdx < mask.confidences.length ? mask.confidences[maskIdx] : 0.0;
+          final p = image.getPixel(x, y);
+          if (confidence >= 0.5) {
+            masked.setPixelRgba(x, y, p.r.toInt(), p.g.toInt(), p.b.toInt(), 255);
+          } else {
+            final gray = (p.r.toInt() * 0.3 + p.g.toInt() * 0.59 + p.b.toInt() * 0.11).round();
+            masked.setPixelRgba(x, y, gray, gray, gray, 255);
+          }
+        }
+      }
+      return img.encodeJpg(masked, quality: 90);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<File> _saveTempImage(img.Image image) async {
+    final dir = await Directory.systemTemp.createTemp('style_tone_');
+    final file = File('${dir.path}/temp.jpg');
+    await file.writeAsBytes(img.encodeJpg(image, quality: 90));
+    return file;
+  }
+
   Future<void> _pickColorFromPhoto(String type) async {
     try {
       final picker = ImagePicker();
@@ -1077,6 +1115,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final decoded = img.decodeImage(bytes);
       if (decoded == null) return;
 
+      final maskedBytes = await _applySelfieMask(decoded);
+      final displayBytes = maskedBytes ?? bytes;
+
       if (!mounted) return;
       final isHair = type == 'hair';
       final hint = isHair
@@ -1086,7 +1127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => _ColorPickerScreen(
-            imageBytes: bytes,
+            imageBytes: displayBytes,
             title: isHair ? 'Pick Hair Color' : 'Pick Eye Color',
             hint: hint,
           ),
