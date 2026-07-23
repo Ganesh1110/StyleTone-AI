@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
@@ -1230,6 +1231,7 @@ class _ColorPickerScreenState extends State<_ColorPickerScreen>
   Offset? _dropperPos;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
+  final GlobalKey _imageKey = GlobalKey();
 
   @override
   void initState() {
@@ -1251,11 +1253,29 @@ class _ColorPickerScreenState extends State<_ColorPickerScreen>
     super.dispose();
   }
 
-  Color _sampleAt(Offset localPosition, Size imageSize) {
-    if (_decoded == null) return Colors.white;
+  Rect _imageContentRect(Size widgetSize) {
+    if (_decoded == null) return Rect.zero;
+    final scale = min(
+      widgetSize.width / _decoded!.width,
+      widgetSize.height / _decoded!.height,
+    );
+    final contentW = _decoded!.width * scale;
+    final contentH = _decoded!.height * scale;
+    final offsetX = (widgetSize.width - contentW) / 2;
+    final offsetY = (widgetSize.height - contentH) / 2;
+    return Rect.fromLTWH(offsetX, offsetY, contentW, contentH);
+  }
 
-    final x = (localPosition.dx / imageSize.width * _decoded!.width).round().clamp(0, _decoded!.width - 1);
-    final y = (localPosition.dy / imageSize.height * _decoded!.height).round().clamp(0, _decoded!.height - 1);
+  Color _sampleAt(Offset localPosition, Size widgetSize) {
+    if (_decoded == null) return Colors.white;
+    final contentRect = _imageContentRect(widgetSize);
+    if (!contentRect.contains(localPosition)) return Colors.white;
+
+    final nx = (localPosition.dx - contentRect.left) / contentRect.width;
+    final ny = (localPosition.dy - contentRect.top) / contentRect.height;
+
+    final x = (nx * _decoded!.width).round().clamp(0, _decoded!.width - 1);
+    final y = (ny * _decoded!.height).round().clamp(0, _decoded!.height - 1);
 
     int sumR = 0, sumG = 0, sumB = 0, count = 0;
     for (int dy = -3; dy <= 3; dy++) {
@@ -1300,90 +1320,91 @@ class _ColorPickerScreenState extends State<_ColorPickerScreen>
       body: Column(
         children: [
           Expanded(
-            child: InteractiveViewer(
-              child: LayoutBuilder(
-                builder: (ctx, constraints) {
-                  final Size imageArea = Size(constraints.maxWidth, constraints.maxHeight);
-                  return GestureDetector(
-                    onTapUp: (details) {
-                      final color = _sampleAt(details.localPosition, imageArea);
-                      setState(() {
-                        _dropperPos = details.localPosition;
-                        _sampledColor = color;
-                        final r = (color.r * 255).round().clamp(0, 255);
-                        final g = (color.g * 255).round().clamp(0, 255);
-                        final b = (color.b * 255).round().clamp(0, 255);
-                        _hexColor = '#${r.toRadixString(16).padLeft(2, '0')}'
-                            '${g.toRadixString(16).padLeft(2, '0')}'
-                            '${b.toRadixString(16).padLeft(2, '0')}';
-                      });
-                    },
-                    child: Stack(
-                      children: [
-                        Image.memory(
-                          widget.imageBytes,
-                          fit: BoxFit.contain,
-                          width: imageArea.width,
-                          height: imageArea.height,
-                        ),
-                        if (_dropperPos != null)
-                          Positioned(
-                            left: _dropperPos!.dx - 28,
-                            top: _dropperPos!.dy - 28,
-                            child: AnimatedBuilder(
-                              animation: _pulseAnim,
-                              builder: (context, child) {
-                                final s = _pulseAnim.value;
-                                return Transform.scale(
-                                  scale: s,
-                                  child: child,
-                                );
-                              },
-                              child: Container(
-                                width: 56,
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.black.withValues(alpha: 0.15),
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 2.5,
-                                  ),
+            child: LayoutBuilder(
+              builder: (ctx, constraints) {
+                final Size widgetSize = Size(constraints.maxWidth, constraints.maxHeight);
+                return GestureDetector(
+                  onTapUp: (details) {
+                    final color = _sampleAt(details.localPosition, widgetSize);
+                    final contentRect = _imageContentRect(widgetSize);
+                    if (!contentRect.contains(details.localPosition)) return;
+                    setState(() {
+                      _dropperPos = details.localPosition;
+                      _sampledColor = color;
+                      final r = (color.r * 255).round().clamp(0, 255);
+                      final g = (color.g * 255).round().clamp(0, 255);
+                      final b = (color.b * 255).round().clamp(0, 255);
+                      _hexColor = '#${r.toRadixString(16).padLeft(2, '0')}'
+                          '${g.toRadixString(16).padLeft(2, '0')}'
+                          '${b.toRadixString(16).padLeft(2, '0')}';
+                    });
+                  },
+                  child: Stack(
+                    key: _imageKey,
+                    children: [
+                      Image.memory(
+                        widget.imageBytes,
+                        fit: BoxFit.contain,
+                        width: widgetSize.width,
+                        height: widgetSize.height,
+                      ),
+                      if (_dropperPos != null)
+                        Positioned(
+                          left: _dropperPos!.dx - 28,
+                          top: _dropperPos!.dy - 28,
+                          child: AnimatedBuilder(
+                            animation: _pulseAnim,
+                            builder: (context, child) {
+                              final s = _pulseAnim.value;
+                              return Transform.scale(
+                                scale: s,
+                                child: child,
+                              );
+                            },
+                            child: Container(
+                              width: 56,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.black.withValues(alpha: 0.15),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2.5,
                                 ),
-                                child: Center(
-                                  child: Container(
-                                    width: 44,
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Colors.black.withValues(alpha: 0.1),
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 1.5,
-                                      ),
-                                      boxShadow: const [
-                                        BoxShadow(
-                                          color: Colors.black45,
-                                          blurRadius: 6,
-                                          spreadRadius: 1,
-                                        ),
-                                      ],
-                                    ),
-                                    child: Icon(
-                                      Icons.add_rounded,
+                              ),
+                              child: Center(
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    border: Border.all(
                                       color: Colors.white,
-                                      size: 20,
+                                      width: 1.5,
                                     ),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Colors.black45,
+                                        blurRadius: 6,
+                                        spreadRadius: 1,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Icon(
+                                    Icons.add_rounded,
+                                    color: Colors.white,
+                                    size: 20,
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                        ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
           Container(
