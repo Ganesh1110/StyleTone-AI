@@ -954,10 +954,10 @@ class _SelfAnalysisScreenState extends State<SelfAnalysisScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '1. Drag the markers directly onto your selfie:\n'
-              '   • Face icon 🫱 onto skin (avoid cheeks/shadows)\n'
-              '   • Scissors icon 💇 onto hair\n'
-              '   • Eye icon 👁️ onto iris/eye color\n',
+              '1. Drag the color droppers directly on your selfie:\n'
+              '   • Pink dropper 🎯 onto skin (avoid cheeks/shadows)\n'
+              '   • Brown dropper 🎯 onto hair\n'
+              '   • Blue dropper 🎯 onto iris/eye color\n',
               style: TextStyle(
                 color: Colors.white70,
                 height: 1.4,
