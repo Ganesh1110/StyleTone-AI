@@ -188,40 +188,52 @@ def adjust_color_for_occasion(hex_color: str, occasion: str) -> str:
     return rgb_to_hex((r * 255, g * 255, b * 255))
 
 
-def _detect_face(img: np.ndarray) -> np.ndarray:
-    """Detect the largest face via MediaPipe and return a cropped region expanded by 30%.
-    Falls back to returning the full image if no face is detected."""
-    import mediapipe as mp
-    mp_face_detection = mp.solutions.face_detection
+def _get_cascade_path() -> str:
+    """Return a path to haarcascade_frontalface_default.xml,
+    preferring a local copy over the OpenCV data directory."""
+    local_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        'haarcascade_frontalface_default.xml'
+    )
+    if os.path.exists(local_path):
+        return local_path
     try:
-        rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        h, w = img.shape[:2]
-        with mp_face_detection.FaceDetection(
-            model_selection=0, min_detection_confidence=0.5
-        ) as detector:
-            results = detector.process(rgb)
-        if not results or not results.detections:
-            logger.warning("No faces detected by MediaPipe; falling back to full image")
-            return img
-        bbox = max(
-            results.detections,
-            key=lambda d: d.location_data.relative_bounding_box.width
-            * d.location_data.relative_bounding_box.height,
-        ).location_data.relative_bounding_box
-        x = int(bbox.xmin * w)
-        y = int(bbox.ymin * h)
-        bw = int(bbox.width * w)
-        bh = int(bbox.height * h)
-        pad = int(0.3 * max(bw, bh))
-        x = max(0, x - pad)
-        y = max(0, y - pad)
-        bw = min(img.shape[1] - x, bw + 2 * pad)
-        bh = min(img.shape[0] - y, bh + 2 * pad)
-        logger.info("MediaPipe face detected, region: %d,%d %dx%d", x, y, bw, bh)
-        return img[y:y + bh, x:x + bw]
-    except Exception as ex:
-        logger.warning("MediaPipe face detection failed (%s); using full image", ex)
+        return cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+    except AttributeError:
+        return local_path
+
+
+def _detect_face(img: np.ndarray) -> np.ndarray:
+    """Detect the largest face and return a cropped region expanded by 30%.
+    Falls back to returning the full image if face detection is unavailable."""
+    cascade_path = _get_cascade_path()
+    if not os.path.exists(cascade_path):
+        logger.warning("Haar cascade file not found at %s; using full image", cascade_path)
         return img
+    try:
+        face_cascade = cv2.CascadeClassifier(cascade_path)
+        if face_cascade.empty():
+            logger.warning("Failed to load Haar cascade; using full image")
+            return img
+    except AttributeError:
+        logger.warning("CascadeClassifier not available in this OpenCV build; using full image")
+        return img
+    except Exception as ex:
+        logger.warning("Face detection init failed (%s); using full image", ex)
+        return img
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray, 1.1, 5, minSize=(80, 80))
+    if len(faces) == 0:
+        logger.warning("No faces detected by Haar cascade; falling back to full image")
+        return img
+    (x, y, w, h) = max(faces, key=lambda f: f[2] * f[3])
+    pad = int(0.3 * max(w, h))
+    x = max(0, x - pad)
+    y = max(0, y - pad)
+    w = min(img.shape[1] - x, w + 2 * pad)
+    h = min(img.shape[0] - y, h + 2 * pad)
+    return img[y:y + h, x:x + w]
 
 
 # ---------------------------------------------------------------------------
