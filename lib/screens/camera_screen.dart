@@ -120,9 +120,13 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   DateTime _lastGuidanceFrame = DateTime.now();
+  int _guidanceFrameSkip = 0;
 
   void _processGuidanceFrame(CameraImage image) {
     if (!_voiceGuidanceEnabled || !mounted) return;
+
+    _guidanceFrameSkip++;
+    if (_guidanceFrameSkip % 60 != 0) return;
 
     final now = DateTime.now();
     if (now.difference(_lastGuidanceFrame).inMilliseconds < 2000) return;

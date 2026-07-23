@@ -833,3 +833,10 @@ Future<Map<String, dynamic>?> processSelfie(img.Image image, {String gender = "n
     return null;
   }
 }
+
+Future<Map<String, dynamic>?> processSelfieFromBytes(Uint8List bytes, String gender) async {
+  final decoded = img.decodeImage(bytes);
+  if (decoded == null) return null;
+  final resized = img.copyResize(decoded, width: 400, height: 400);
+  return processSelfie(resized, gender: gender);
+}

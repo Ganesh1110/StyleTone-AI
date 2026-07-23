@@ -1,4 +1,8 @@
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
+import 'package:image_picker/image_picker.dart';
 import '../models/user_profile.dart';
 import '../services/profile_service.dart';
 import '../widgets/glass_card.dart';
@@ -884,25 +888,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final hexes = type == 'hair' ? _hairPresetHexes : _eyePresetHexes;
     final labels = type == 'hair' ? _hairPresetLabels : _eyePresetLabels;
     final currentHex = type == 'hair' ? _hairColor : _eyeColor;
+    final isCustom = currentHex != null && !hexes.contains(currentHex);
 
     return Wrap(
       spacing: 12,
       runSpacing: 12,
-      children: List.generate(colors.length, (i) {
-        final color = colors[i];
-        final hex = hexes[i];
-        final label = labels[i];
-        final isSelected = currentHex == hex;
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              if (type == 'hair') {
-                _hairColor = isSelected ? null : hex;
-              } else {
-                _eyeColor = isSelected ? null : hex;
-              }
-            });
-          },
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        GestureDetector(
+          onTap: () => _pickColorFromPhoto(type),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -910,33 +904,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: color,
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isSelected ? Colors.white : Colors.white24,
-                    width: isSelected ? 2.5 : 1,
+                  gradient: LinearGradient(
+                    colors: [Colors.cyan, Colors.purple],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: color.withValues(alpha: 0.6),
-                            blurRadius: 8,
-                            spreadRadius: 1,
-                          ),
-                        ]
-                      : null,
+                  border: Border.all(color: Colors.white38, width: 1),
                 ),
+                child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
               ),
               const SizedBox(height: 3),
               SizedBox(
                 width: 48,
                 child: Text(
-                  label,
+                  'Photo',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 8,
                     color: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.white60,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: FontWeight.normal,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -944,10 +931,185 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
-        );
-      }),
+        ),
+        if (isCustom)
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                if (type == 'hair') {
+                  _hairColor = null;
+                } else {
+                  _eyeColor = null;
+                }
+              });
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: Color(
+                      int.parse(currentHex.substring(1), radix: 16),
+                    ),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(
+                          int.parse(currentHex.substring(1), radix: 16),
+                        ).withValues(alpha: 0.6),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.camera_alt, size: 14, color: Colors.white70),
+                ),
+                const SizedBox(height: 3),
+                SizedBox(
+                  width: 48,
+                  child: Text(
+                    currentHex.toUpperCase(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 7,
+                      color: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.white60,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.3,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ...List.generate(colors.length, (i) {
+          final color = colors[i];
+          final hex = hexes[i];
+          final label = labels[i];
+          final isSelected = currentHex == hex;
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                if (type == 'hair') {
+                  _hairColor = isSelected ? null : hex;
+                } else {
+                  _eyeColor = isSelected ? null : hex;
+                }
+              });
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? Colors.white : Colors.white24,
+                      width: isSelected ? 2.5 : 1,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: color.withValues(alpha: 0.6),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                            ),
+                          ]
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                SizedBox(
+                  width: 48,
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 8,
+                      color: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.white60,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
     );
   }
+
+  Future<void> _pickColorFromPhoto(String type) async {
+    try {
+      final picker = ImagePicker();
+      final source = await showDialog<ImageSource>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('Pick ${type == 'hair' ? 'Hair' : 'Eye'} Color'),
+          content: const Text('Choose a photo source'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, ImageSource.camera),
+              child: const Text('Camera'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, ImageSource.gallery),
+              child: const Text('Gallery'),
+            ),
+          ],
+        ),
+      );
+      if (source == null || !mounted) return;
+
+      final picked = await picker.pickImage(source: source);
+      if (picked == null || !mounted) return;
+
+      final bytes = await File(picked.path).readAsBytes();
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) return;
+
+      if (!mounted) return;
+      final isHair = type == 'hair';
+      final hint = isHair
+          ? 'Tap on your hair to sample its color'
+          : 'Tap on your iris (the colored part of your eye)';
+      final hex = await Navigator.push<String>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => _ColorPickerScreen(
+            imageBytes: bytes,
+            title: isHair ? 'Pick Hair Color' : 'Pick Eye Color',
+            hint: hint,
+          ),
+        ),
+      );
+      if (hex == null || !mounted) return;
+
+      setState(() {
+        if (type == 'hair') {
+          _hairColor = hex;
+        } else {
+          _eyeColor = hex;
+        }
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick color: $e')),
+        );
+      }
+    }
+  }
+
 
   Widget _buildGenderChip(String value, IconData icon, String label) {
     final isSelected = _gender == value;
@@ -999,6 +1161,234 @@ class _ProfileScreenState extends State<ProfileScreen> {
           });
         }
       },
+    );
+  }
+}
+
+class _ColorPickerScreen extends StatefulWidget {
+  final Uint8List imageBytes;
+  final String title;
+  final String hint;
+
+  const _ColorPickerScreen({
+    required this.imageBytes,
+    required this.title,
+    required this.hint,
+  });
+
+  @override
+  State<_ColorPickerScreen> createState() => _ColorPickerScreenState();
+}
+
+class _ColorPickerScreenState extends State<_ColorPickerScreen>
+    with SingleTickerProviderStateMixin {
+  img.Image? _decoded;
+  Color _sampledColor = Colors.white;
+  String _hexColor = '#FFFFFF';
+  bool _loaded = false;
+  Offset? _dropperPos;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _decoded = img.decodeImage(widget.imageBytes);
+    _loaded = true;
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _pulseAnim = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  Color _sampleAt(Offset localPosition, Size imageSize) {
+    if (_decoded == null) return Colors.white;
+
+    final x = (localPosition.dx / imageSize.width * _decoded!.width).round().clamp(0, _decoded!.width - 1);
+    final y = (localPosition.dy / imageSize.height * _decoded!.height).round().clamp(0, _decoded!.height - 1);
+
+    int sumR = 0, sumG = 0, sumB = 0, count = 0;
+    for (int dy = -3; dy <= 3; dy++) {
+      for (int dx = -3; dx <= 3; dx++) {
+        final p = _decoded!.getPixel(
+          (x + dx).clamp(0, _decoded!.width - 1),
+          (y + dy).clamp(0, _decoded!.height - 1),
+        );
+        sumR += p.r.toInt();
+        sumG += p.g.toInt();
+        sumB += p.b.toInt();
+        count++;
+      }
+    }
+
+    final r = (sumR ~/ count).clamp(0, 255);
+    final g = (sumG ~/ count).clamp(0, 255);
+    final b = (sumB ~/ count).clamp(0, 255);
+
+    return Color.fromARGB(255, r, g, b);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loaded) {
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.title)),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, _hexColor),
+            child: const Text('Confirm', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: InteractiveViewer(
+              child: LayoutBuilder(
+                builder: (ctx, constraints) {
+                  final Size imageArea = Size(constraints.maxWidth, constraints.maxHeight);
+                  return GestureDetector(
+                    onTapUp: (details) {
+                      final color = _sampleAt(details.localPosition, imageArea);
+                      setState(() {
+                        _dropperPos = details.localPosition;
+                        _sampledColor = color;
+                        final r = (color.r * 255).round().clamp(0, 255);
+                        final g = (color.g * 255).round().clamp(0, 255);
+                        final b = (color.b * 255).round().clamp(0, 255);
+                        _hexColor = '#${r.toRadixString(16).padLeft(2, '0')}'
+                            '${g.toRadixString(16).padLeft(2, '0')}'
+                            '${b.toRadixString(16).padLeft(2, '0')}';
+                      });
+                    },
+                    child: Stack(
+                      children: [
+                        Image.memory(
+                          widget.imageBytes,
+                          fit: BoxFit.contain,
+                          width: imageArea.width,
+                          height: imageArea.height,
+                        ),
+                        if (_dropperPos != null)
+                          Positioned(
+                            left: _dropperPos!.dx - 28,
+                            top: _dropperPos!.dy - 28,
+                            child: AnimatedBuilder(
+                              animation: _pulseAnim,
+                              builder: (context, child) {
+                                final s = _pulseAnim.value;
+                                return Transform.scale(
+                                  scale: s,
+                                  child: child,
+                                );
+                              },
+                              child: Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.black.withValues(alpha: 0.15),
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 2.5,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.black.withValues(alpha: 0.1),
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 1.5,
+                                      ),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: Colors.black45,
+                                          blurRadius: 6,
+                                          spreadRadius: 1,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      Icons.add_rounded,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              border: Border(top: BorderSide(color: Colors.white12)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: _sampledColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white38, width: 2),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _hexColor.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.white,
+                      ),
+                    ),
+                    Text(
+                      widget.hint,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: (Theme.of(context).textTheme.bodyMedium?.color ?? Colors.white60).withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

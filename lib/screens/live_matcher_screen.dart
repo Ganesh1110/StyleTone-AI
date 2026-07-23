@@ -150,9 +150,8 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
     if (_isProcessing) return;
 
     final now = DateTime.now();
-    // Throttle processing to 1 frame every 150ms to maintain smooth 60 FPS UI rendering
     if (_lastProcessedTime != null &&
-        now.difference(_lastProcessedTime!).inMilliseconds < 150) {
+        now.difference(_lastProcessedTime!).inMilliseconds < 500) {
       return;
     }
     _lastProcessedTime = now;
@@ -168,7 +167,7 @@ class _LiveMatcherScreenState extends State<LiveMatcherScreen> {
       int r = 255, g = 255, b = 255;
       int sumR = 0, sumG = 0, sumB = 0;
       int count = 0;
-      const int halfGrid = 4; // 9x9 grid around the center pixel
+      const int halfGrid = 2; // 5x5 grid around the center pixel
 
       // Extract colors from center coordinates depending on frame format
       if (image.format.group == ImageFormatGroup.yuv420) {

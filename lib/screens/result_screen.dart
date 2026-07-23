@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -9,7 +10,6 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import 'package:image/image.dart' as img;
 import '../services/api_service.dart';
 import '../services/skin_analyzer.dart';
 import '../services/tts_service.dart';
@@ -155,10 +155,10 @@ class _ResultScreenState extends State<ResultScreen>
     try {
       final profile = await ProfileService().getProfile();
       final bytes = await widget.imageFile.readAsBytes();
-      final decoded = img.decodeImage(bytes);
-      if (decoded == null) return null;
-      final resized = img.copyResize(decoded, width: 400, height: 400);
-      final data = await processSelfie(resized, gender: profile.gender);
+      final gender = profile.gender;
+      final data = await Isolate.run(
+        () => processSelfieFromBytes(bytes, gender),
+      );
       if (data == null) return null;
       return ColorRecommendation.fromJson(data);
     } catch (_) {

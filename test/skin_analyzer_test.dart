@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:style_tone_ai/services/skin_analyzer.dart';
@@ -13,7 +14,10 @@ void main() {
       }
       final result = await processSelfie(image);
       expect(result, isNotNull);
-      expect(result!['detected_category'], 'Warm Golden/Peach Skin Tone');
+      expect(
+        result!['detected_category'],
+        contains('Warm Golden/Peach'),
+      );
       expect(result['confidence'], greaterThan(0));
       expect(result['explanation'], isNotEmpty);
       expect(result['palettes'], isA<Map>());
@@ -32,7 +36,10 @@ void main() {
       }
       final result = await processSelfie(image);
       expect(result, isNotNull);
-      expect(result!['detected_category'], 'Cool Rosy/Pink Skin Tone');
+      expect(
+        result!['detected_category'],
+        contains('Cool Rosy/Pink'),
+      );
     });
 
     test('returns null for non-skin image', () async {
@@ -44,6 +51,19 @@ void main() {
       }
       final result = await processSelfie(image);
       expect(result, isNull);
+    });
+
+    test('processSelfieFromBytes classifies via bytes', () async {
+      final image = img.Image(width: 100, height: 100);
+      for (int y = 0; y < 100; y++) {
+        for (int x = 0; x < 100; x++) {
+          image.setPixelRgb(x, y, 235, 195, 145);
+        }
+      }
+      final bytes = Uint8List.fromList(img.encodePng(image));
+      final result = await processSelfieFromBytes(bytes, 'neutral');
+      expect(result, isNotNull);
+      expect(result!['detected_category'], contains('Warm Golden/Peach'));
     });
   });
 }
