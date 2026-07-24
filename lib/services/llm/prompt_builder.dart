@@ -3,46 +3,51 @@ import '../../models/closet_item.dart';
 
 class PromptBuilder {
   final UserProfile profile;
-  final String? skinToneCategory;
   final String? skinToneSeason;
   final List<ClosetItem> wardrobe;
 
   PromptBuilder({
     required this.profile,
-    this.skinToneCategory,
     this.skinToneSeason,
     this.wardrobe = const [],
   });
 
-  String buildSystemPrompt() {
+  String buildSystemInstructions() {
     final buf = StringBuffer();
     buf.writeln('You are Style Coach, a personal fashion stylist AI.');
-    buf.writeln('You give concise, confident, and personalised fashion advice.');
-    buf.writeln('Keep responses under 4 sentences unless asked for detail.');
-    buf.writeln('Be warm, encouraging, and practical.');
     buf.writeln();
-    buf.writeln('--- USER PROFILE ---');
+    buf.writeln('Rules:');
+    buf.writeln(
+      '- Give concise, confident, and personalised fashion advice.',
+    );
+    buf.writeln('- Keep responses under 4 sentences unless asked for detail.');
+    buf.writeln('- Be warm, encouraging, and practical.');
+    buf.writeln('- Never give medical, health, or dermatological advice.');
+    buf.writeln('- Be transparent that you are an AI stylist.');
+    buf.writeln('- Do not guarantee specific results or make promises.');
+    buf.writeln('- If you lack information, make reasonable assumptions and note them.');
+    buf.writeln('- Format responses in plain text (no markdown, no bullet lists unless listing items).');
+    return buf.toString();
+  }
 
-    final gender = profile.gender;
-    final age = profile.age;
-    final style = profile.preferredStyle;
-
-    if (gender != 'neutral') buf.writeln('Gender: $gender');
-    buf.writeln('Age: $age');
-    buf.writeln('Preferred style: $style');
-    buf.writeln('Hair color: ${profile.hairColor ?? "unknown"}');
-    buf.writeln('Eye color: ${profile.eyeColor ?? "unknown"}');
-
-    if (skinToneCategory != null) {
-      buf.writeln('Skin tone category: $skinToneCategory');
+  String buildUserContext() {
+    final buf = StringBuffer();
+    buf.writeln('User context:');
+    buf.writeln('- Age: ${profile.age}');
+    buf.writeln('- Preferred style: ${profile.preferredStyle}');
+    if (profile.hairColor != null) {
+      buf.writeln('- Hair color: ${profile.hairColor}');
+    }
+    if (profile.eyeColor != null) {
+      buf.writeln('- Eye color: ${profile.eyeColor}');
     }
     if (skinToneSeason != null) {
-      buf.writeln('Seasonal colour type: $skinToneSeason');
+      buf.writeln('- Seasonal colour type: $skinToneSeason');
     }
 
     if (wardrobe.isNotEmpty) {
       buf.writeln();
-      buf.writeln('--- WARDROBE INVENTORY ---');
+      buf.writeln('Wardrobe:');
       final grouped = <String, List<ClosetItem>>{};
       for (final item in wardrobe) {
         grouped.putIfAbsent(item.category, () => []).add(item);
@@ -51,17 +56,9 @@ class PromptBuilder {
         final items = entry.value
             .map((i) => '${i.colorName} ${i.category} (#${i.hexColor})')
             .join(', ');
-        buf.writeln('${entry.key}: $items');
+        buf.writeln('- ${entry.key}: $items');
       }
     }
-
-    buf.writeln();
-    buf.writeln(
-      'Use the profile and wardrobe above to give personalised advice.',
-    );
-    buf.writeln(
-      'If you lack information, make reasonable assumptions and note them.',
-    );
     return buf.toString();
   }
 

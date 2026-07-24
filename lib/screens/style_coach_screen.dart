@@ -158,20 +158,32 @@ class _StyleCoachScreenState extends State<StyleCoachScreen> {
           ],
         ),
         actions: [
-          if (_isInitialized)
+          if (_isInitialized) ...[
             IconButton(
               icon: const Icon(Icons.refresh_rounded),
-              tooltip: 'Refresh context',
+              tooltip: 'Refresh context & clear history',
               onPressed: () {
                 _llm.refreshContext();
+                _llm.clearHistory();
+                setState(() => _messages.clear());
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Wardrobe & profile context refreshed'),
+                    content: Text('Context refreshed, conversation reset'),
                     duration: Duration(seconds: 1),
                   ),
                 );
               },
             ),
+            if (_messages.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded),
+                tooltip: 'Clear conversation',
+                onPressed: () {
+                  _llm.clearHistory();
+                  setState(() => _messages.clear());
+                },
+              ),
+          ],
         ],
       ),
       body: Column(

@@ -10,6 +10,12 @@ import '../models/closet_item.dart';
 
 enum LlmStatus { unloaded, loading, ready, error }
 
+class _ChatEntry {
+  final String role;
+  final String content;
+  const _ChatEntry(this.role, this.content);
+}
+
 class LlmService {
   static final LlmService instance = LlmService._();
   LlmService._();
@@ -24,13 +30,13 @@ class LlmService {
   UserProfile? _cachedProfile;
   String? _cachedSeason;
   List<ClosetItem> _cachedWardrobe = [];
+  final List<_ChatEntry> _history = [];
 
-  static const String _modelFilename = 'Phi-4-mini-instruct-q4_k_m.gguf';
+  static const String _modelFilename = 'Phi-4-mini-instruct-Q4_K_M.gguf';
   static const String _modelDownloadUrl =
-      'https://huggingface.co/microsoft/Phi-4-mini-instruct-gguf/resolve/main/'
-      'Phi-4-mini-instruct-q4_k_m.gguf';
+      'https://huggingface.co/unsloth/Phi-4-mini-instruct-GGUF/resolve/main/'
+      'Phi-4-mini-instruct-Q4_K_M.gguf';
 
-  /// Resolves the expected path for the model file on disk.
   Future<String> get modelPath async {
     if (_modelPath != null) return _modelPath!;
     final dir = await getApplicationDocumentsDirectory();
@@ -55,6 +61,12 @@ class LlmService {
 
   String get suggestedModel => _modelFilename;
 
+  int get historyLength => _history.length;
+
+  void clearHistory() {
+    _history.clear();
+  }
+
   Future<void> refreshContext() async {
     try {
       _cachedProfile = await ProfileService().getProfile();
@@ -68,32 +80,49 @@ class LlmService {
     }
   }
 
-  String _buildSystemPrompt() {
+  String _buildSystemMessage() {
     final builder = PromptBuilder(
       profile: _cachedProfile ?? UserProfile.defaultProfile(),
       skinToneSeason: _cachedSeason,
       wardrobe: _cachedWardrobe,
     );
-    return builder.buildSystemPrompt();
+    final buf = StringBuffer();
+    buf.writeln(builder.buildSystemInstructions());
+    buf.writeln();
+    buf.write(builder.buildUserContext());
+    return buf.toString();
   }
 
-  String buildPrompt({required String message, String? context}) {
-    final system = _buildSystemPrompt();
+  String _buildChatPrompt(String system) {
     final buf = StringBuffer();
-    buf.writeln(system);
+    buf.writeln('<|system|>');
+    buf.write(system.trim());
     buf.writeln();
-    buf.writeln('--- USER QUERY ---');
-    if (context != null) {
-      buf.writeln('Additional context: $context');
+    buf.writeln('<|end|>');
+    for (final entry in _history) {
+      buf.writeln('<|${entry.role}|>');
+      buf.write(entry.content.trim());
+      buf.writeln();
+      buf.writeln('<|end|>');
     }
-    buf.writeln(message);
+    buf.write('<|assistant|>');
     return buf.toString();
   }
 
   Future<String> ask(String message, {String? context}) async {
     await refreshContext();
-    final prompt = buildPrompt(message: message, context: context);
-    return _infer(prompt);
+    final system = _buildSystemMessage();
+    final userMessage = context != null ? '$message\n\nAdditional context: $context' : message;
+    _history.add(_ChatEntry('user', userMessage));
+    final prompt = _buildChatPrompt(system);
+    try {
+      final result = await _infer(prompt);
+      _history.add(_ChatEntry('assistant', result));
+      return result;
+    } catch (e) {
+      _history.removeLast();
+      rethrow;
+    }
   }
 
   Future<String> askOutfitExplanation({
@@ -165,31 +194,6 @@ class LlmService {
   }
 
   Future<String> _llamaCppInference(String modelPath, String prompt) async {
-    // -----------------------------------------------------------------------
-    // Native llama.cpp inference via llama_cpp_dart FFI bindings.
-    //
-    // When the llama_cpp_dart package is added to pubspec.yaml, replace the
-    // body of this method with something like:
-    //
-    //   import 'package:llama_cpp_dart/llama_cpp_dart.dart';
-    //
-    //   final llama = LlamaCpp();
-    //   await llama.loadModel(
-    //     modelPath,
-    //     nCtx: 8192,                 // Phi-4-mini supports up to 128K
-    //     nGpuLayers: 1,              // enable Metal/CUDA offloading
-    //   );
-    //   final output = await llama.infer(
-    //     prompt,
-    //     maxTokens: 256,
-    //     temperature: 0.7,
-    //     topP: 0.9,
-    //   );
-    //   await llama.unloadModel();
-    //   return output;
-    //
-    // -----------------------------------------------------------------------
-
     throw UnimplementedError(
       'llama.cpp native inference is not yet wired.\n\n'
       'To enable:\n'
