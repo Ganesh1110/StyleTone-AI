@@ -25,10 +25,10 @@ class LlmService {
   String? _cachedSeason;
   List<ClosetItem> _cachedWardrobe = [];
 
-  static const String _modelFilename = 'Phi-3-mini-4k-instruct-q4.gguf';
+  static const String _modelFilename = 'Phi-4-mini-instruct-q4_k_m.gguf';
   static const String _modelDownloadUrl =
-      'https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/'
-      'Phi-3-mini-4k-instruct-q4.gguf';
+      'https://huggingface.co/microsoft/Phi-4-mini-instruct-gguf/resolve/main/'
+      'Phi-4-mini-instruct-q4_k_m.gguf';
 
   /// Resolves the expected path for the model file on disk.
   Future<String> get modelPath async {
@@ -176,8 +176,8 @@ class LlmService {
     //   final llama = LlamaCpp();
     //   await llama.loadModel(
     //     modelPath,
-    //     nCtx: 2048,
-    //     nGpuLayers: 1,                 // enable Metal/CUDA offloading
+    //     nCtx: 8192,                 // Phi-4-mini supports up to 128K
+    //     nGpuLayers: 1,              // enable Metal/CUDA offloading
     //   );
     //   final output = await llama.infer(
     //     prompt,

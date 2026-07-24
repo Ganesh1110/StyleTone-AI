@@ -100,7 +100,7 @@ class _StyleCoachScreenState extends State<StyleCoachScreen> {
 
   Future<void> _downloadModel() async {
     setState(() {
-      _statusMessage = 'Downloading model (1.5GB)...';
+      _statusMessage = 'Downloading model (2.3GB)...';
       _isInitialized = false;
     });
 
@@ -267,9 +267,9 @@ class _StyleCoachScreenState extends State<StyleCoachScreen> {
                   const Icon(Icons.download_rounded,
                       color: Colors.amber, size: 28),
                   const SizedBox(height: 8),
-                  const Text(
+                    const Text(
                     'Download the fashion AI model to get started.\n'
-                    '~1.5 GB • One-time download • Runs 100% offline',
+                    '~2.3 GB • One-time download • Runs 100% offline',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 13, color: Colors.white70),
                   ),
