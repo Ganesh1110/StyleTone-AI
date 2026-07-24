@@ -39,6 +39,9 @@ dependencies:
   # TTS (Text-to-Speech)
   flutter_tts: ^3.8.5
 
+  # On-Device LLM (for Style Coach Q&A)
+  # llama_cpp_dart: ^0.1.0  # Uncomment after setting up native build scripts
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

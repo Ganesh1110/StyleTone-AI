@@ -12,6 +12,7 @@ import 'live_matcher_screen.dart';
 import 'trip_mode_screen.dart';
 import 'style_timeline_screen.dart';
 import 'link_scan_screen.dart';
+import 'style_coach_screen.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../widgets/glass_card.dart';
 
@@ -208,6 +209,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LinkScanScreen())),
                     ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _MiniFeatureCard(
+                      icon: Icons.auto_awesome,
+                      label: 'Style\nCoach',
+                      color: Colors.purple,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StyleCoachScreen())),
+                    ),
+                  ),
+                  const Expanded(child: SizedBox()),
+                  const Expanded(child: SizedBox()),
                 ],
               ),
               const SizedBox(height: 32),

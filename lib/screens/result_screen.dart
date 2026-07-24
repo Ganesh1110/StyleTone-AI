@@ -16,6 +16,7 @@ import '../services/tts_service.dart';
 import '../services/history_service.dart';
 import '../services/profile_service.dart';
 import '../services/theme_service.dart';
+import 'style_coach_screen.dart';
 import '../models/user_profile.dart';
 import '../models/color_recommendation.dart';
 import '../widgets/glass_card.dart';
@@ -428,6 +429,19 @@ class _ResultScreenState extends State<ResultScreen>
                     _recommendation = updatedRec;
                   });
                 }
+              },
+            ),
+          if (_recommendation != null)
+            IconButton(
+              icon: const Icon(Icons.auto_awesome_rounded),
+              tooltip: 'Ask Style Coach',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const StyleCoachScreen(),
+                  ),
+                );
               },
             ),
           if (_recommendation != null)

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../models/closet_item.dart';
 import '../models/history_item.dart';
 import '../services/database_helper.dart';
+import '../services/llm_service.dart';
 import '../widgets/glass_card.dart';
+import 'style_coach_screen.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class OutfitCombinatorScreen extends StatefulWidget {
@@ -320,6 +322,19 @@ class _OutfitCombinatorScreenState extends State<OutfitCombinatorScreen> with Si
             outfitMap['accessory']?['score'] as int?,
             palette.accentColor,
           ),
+          if (outfitMap['top']?['item'] != null &&
+              outfitMap['bottom']?['item'] != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _OutfitExplanationCard(
+                occasionKey: occasionKey,
+                topItem: outfitMap['top']!['item'] as ClosetItem,
+                bottomItem: outfitMap['bottom']!['item'] as ClosetItem,
+                outerItem: outfitMap['outer']?['item'] as ClosetItem?,
+                accessoryItem: outfitMap['accessory']?['item'] as ClosetItem?,
+                season: rec.detectedCategory,
+              ),
+            ),
           const SizedBox(height: 32),
         ],
       ),
@@ -451,5 +466,163 @@ class _OutfitCombinatorScreenState extends State<OutfitCombinatorScreen> with Si
     if (score >= 90) return Colors.green;
     if (score >= 75) return Colors.orange;
     return Colors.red;
+  }
+}
+
+class _OutfitExplanationCard extends StatefulWidget {
+  final String occasionKey;
+  final ClosetItem topItem;
+  final ClosetItem bottomItem;
+  final ClosetItem? outerItem;
+  final ClosetItem? accessoryItem;
+  final String? season;
+
+  const _OutfitExplanationCard({
+    required this.occasionKey,
+    required this.topItem,
+    required this.bottomItem,
+    this.outerItem,
+    this.accessoryItem,
+    this.season,
+  });
+
+  @override
+  State<_OutfitExplanationCard> createState() => _OutfitExplanationCardState();
+}
+
+class _OutfitExplanationCardState extends State<_OutfitExplanationCard> {
+  String? _explanation;
+  bool _isLoading = false;
+
+  Future<void> _fetchExplanation() async {
+    if (_explanation != null) return;
+    setState(() => _isLoading = true);
+    try {
+      final llm = LlmService.instance;
+      final result = await llm.askOutfitExplanation(
+        item1Name: widget.topItem.colorName,
+        item1Color: widget.topItem.hexColor,
+        item1Category: widget.topItem.category,
+        item2Name: widget.bottomItem.colorName,
+        item2Color: widget.bottomItem.hexColor,
+        item2Category: widget.bottomItem.category,
+        accessoryName: widget.accessoryItem?.colorName,
+        accessoryColor: widget.accessoryItem?.hexColor,
+        season: widget.season,
+        occasion: widget.occasionKey,
+      );
+      if (mounted) setState(() => _explanation = result);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _explanation =
+              'Style Coach: ${e.toString().replaceAll("Exception: ", "")}';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+      color: Colors.amber.withValues(alpha: 0.05),
+      padding: const EdgeInsets.all(16),
+      border: Border.all(color: Colors.amber.withValues(alpha: 0.15)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.auto_awesome, size: 18, color: Colors.amber.shade300),
+              const SizedBox(width: 8),
+              Text(
+                'Style Coach Analysis',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.amber.shade300,
+                ),
+              ),
+              const Spacer(),
+              if (_explanation == null && !_isLoading)
+                TextButton.icon(
+                  onPressed: _fetchExplanation,
+                  icon: const Icon(Icons.auto_awesome, size: 14),
+                  label: const Text('Explain', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.amber,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              if (_explanation != null)
+                TextButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const StyleCoachScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.chat, size: 14),
+                  label: const Text('Chat', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.amber,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_isLoading)
+            Row(
+              children: [
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.amber.shade300,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Getting AI analysis...',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.amber.shade300,
+                  ),
+                ),
+              ],
+            )
+          else if (_explanation != null)
+            Text(
+              _explanation!,
+              style: const TextStyle(
+                fontSize: 13.5,
+                height: 1.4,
+                color: Colors.white70,
+              ),
+            )
+          else
+            Text(
+              'Tap "Explain" for an AI-powered breakdown of why this '
+              'outfit works — colour harmony, style coherence, and '
+              'skin tone compatibility.',
+              style: const TextStyle(fontSize: 12, color: Colors.white38),
+            ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 400.ms);
   }
 }
